@@ -457,6 +457,10 @@ class SSAI_Admin {
 								</tbody>
 							</table>
 							<?php
+							$mn = get_option( 'ssai_model_note' );
+							if ( is_array( $mn ) && ! empty( $mn['to'] ) && time() - (int) $mn['time'] < 30 * DAY_IN_SECONDS ) {
+								echo '<p class="description">ℹ مدل <code>' . esc_html( $mn['from'] ) . '</code> از طرف سرویس بازنشسته شده بود؛ افزونه خودکار به <code>' . esc_html( $mn['to'] ) . '</code> تغییر داد (' . esc_html( human_time_diff( $mn['time'] ) ) . ' پیش).</p>';
+							}
 							$last = get_option( 'ssai_ai_last' );
 							if ( is_array( $last ) && ! empty( $last['provider'] ) && isset( $providers[ $last['provider'] ] ) ) {
 								echo '<p class="description">آخرین پاسخ: <strong>' . esc_html( preg_replace( '/\s*\(.*$/u', '', $providers[ $last['provider'] ]['label'] ) ) . '</strong> / <code>' . esc_html( $last['model'] ) . '</code> — ' . esc_html( human_time_diff( $last['time'] ) ) . ' پیش' . ( ! empty( $last['fallback'] ) ? ' (سرویس اصلی جواب نداد و پشتیبان استفاده شد)' : '' ) . '</p>';

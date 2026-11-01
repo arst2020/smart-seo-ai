@@ -18,7 +18,7 @@ class SSAI_Settings {
 			'gemini'     => array(
 				'label' => 'Google Gemini (رایگان با محدودیت روزانه)',
 				'base'  => 'https://generativelanguage.googleapis.com/v1beta',
-				'model' => 'gemini-2.5-flash',
+				'model' => 'gemini-3.8-flash',
 				'key'   => true,
 				'help'  => 'https://aistudio.google.com/apikey',
 			),
@@ -165,6 +165,26 @@ class SSAI_Settings {
 		}
 		$a = (string) self::get( 'cf_account' );
 		return '' === $a ? '' : str_replace( '{account}', $a, $base );
+	}
+
+	/** A service retired a model: store its replacement wherever the old name was in use. */
+	public static function replace_model( $provider, $from, $to ) {
+		$o   = self::get();
+		$all = self::providers();
+		$chg = false;
+		if ( $o['provider'] === $provider && ( $o['model'] === $from || ( '' === $o['model'] && isset( $all[ $provider ] ) && $all[ $provider ]['model'] === $from ) ) ) {
+			$o['model'] = $to;
+			$chg        = true;
+		}
+		if ( isset( $o['backup'][ $provider ] ) && ( $o['backup'][ $provider ]['model'] === $from || ( '' === $o['backup'][ $provider ]['model'] && isset( $all[ $provider ] ) && $all[ $provider ]['model'] === $from ) ) ) {
+			$o['backup'][ $provider ]['model'] = $to;
+			$chg                               = true;
+		}
+		if ( $chg ) {
+			remove_all_filters( 'sanitize_option_' . self::OPTION ); // Stored as is (values already valid).
+			update_option( self::OPTION, $o );
+		}
+		update_option( 'ssai_model_note', array( 'provider' => $provider, 'from' => $from, 'to' => $to, 'time' => time() ), false );
 	}
 
 	/** Services that can be backups, cheapest/free first. */

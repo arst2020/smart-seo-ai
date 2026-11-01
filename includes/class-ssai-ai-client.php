@@ -193,6 +193,20 @@ class SSAI_AI_Client {
 			}
 			if ( 404 === $code || ( 400 === $code && preg_match( '/model|api[ _]?key/i', $msg ) ) ) {
 				$retry = 3600; // Wrong / retired model name.
+				// Retired model: use the replacement the service names (or Gemini's "latest" alias) and remember it.
+				if ( empty( $c['retired'] ) && preg_match( '/no longer available|not found|deprecated|retired|decommission/i', $msg ) ) {
+					$to = preg_match( '#use (?:models/)?([A-Za-z0-9][\w.:/-]{1,80}[A-Za-z0-9])#i', $msg, $mm ) ? $mm[1] : ( 'gemini' === $provider ? 'gemini-flash-latest' : '' );
+					if ( '' !== $to && $to !== $model ) {
+						$c2            = $c;
+						$c2['model']   = $to;
+						$c2['retired'] = true;
+						$r2            = self::call( $c2, $system, $user, $json );
+						if ( ! is_wp_error( $r2 ) ) {
+							SSAI_Settings::replace_model( $provider, $model, $to );
+						}
+						return $r2;
+					}
+				}
 			}
 			return new WP_Error( 'ssai_api', 'خطای سرویس هوش مصنوعی (' . $code . '): ' . $msg, $retry ? array( 'retry' => $retry ) : null );
 		}
