@@ -46,7 +46,7 @@ class SSAI_Analyzer {
 		if ( ! $post ) {
 			return null;
 		}
-		$key = 'ssai_h1_' . $post_id;
+		$key = 'ssai_live_' . $post_id;
 		$c   = get_transient( $key );
 		if ( is_array( $c ) && isset( $c['mod'] ) && $c['mod'] === $post->post_modified_gmt ) {
 			return $c;
@@ -55,10 +55,11 @@ class SSAI_Analyzer {
 			$res = wp_remote_get(
 				add_query_arg( 'ssai_h1', time(), get_permalink( $post ) ),
 				array(
-					'timeout'     => 12,
-					'redirection' => 2,
-					'sslverify'   => apply_filters( 'https_local_ssl_verify', false ),
-					'headers'     => array( 'Cache-Control' => 'no-cache' ),
+					'timeout'             => 12,
+					'redirection'         => 2,
+					'sslverify'           => apply_filters( 'https_local_ssl_verify', false ),
+					'headers'             => array( 'Cache-Control' => 'no-cache' ),
+					'limit_response_size' => 3 * MB_IN_BYTES,
 				)
 			);
 			$html = is_wp_error( $res ) || 200 !== (int) wp_remote_retrieve_response_code( $res ) ? '' : (string) wp_remote_retrieve_body( $res );
@@ -70,7 +71,12 @@ class SSAI_Analyzer {
 						$list[] = '' === $t ? '(H1 خالی یا فقط تصویر)' : $t;
 					}
 				}
-				$c = array( 'h1' => $list, 'src' => 'live', 'mod' => $post->post_modified_gmt );
+				$c = array(
+					'h1'   => $list,
+					'src'  => 'live',
+					'mod'  => $post->post_modified_gmt,
+					'main' => self::main_area( $html, $post ),
+				);
 				set_transient( $key, $c, DAY_IN_SECONDS );
 				return $c;
 			}
@@ -83,6 +89,83 @@ class SSAI_Analyzer {
 			}
 		}
 		return null;
+	}
+
+	/**
+	 * Links and text of the page body as visitors see it (Elementor loop grids, global widgets, shortcodes…),
+	 * without the site header, menu and footer.
+	 *
+	 * @return array|null internal (unique pages), external, dofollow, words, text, links[]
+	 */
+	private static function main_area( $html, $post ) {
+		if ( ! class_exists( 'DOMDocument' ) ) {
+			return null;
+		}
+		$prev = libxml_use_internal_errors( true );
+		$doc  = new DOMDocument();
+		$ok   = $doc->loadHTML( '<?xml encoding="UTF-8">' . $html, LIBXML_NONET );
+		libxml_clear_errors();
+		libxml_use_internal_errors( $prev );
+		if ( ! $ok ) {
+			return null;
+		}
+		$xp = new DOMXPath( $doc );
+		foreach ( iterator_to_array( $xp->query( '//script|//style|//noscript|//template' ) ) as $n ) {
+			$n->parentNode->removeChild( $n );
+		}
+		$id   = (int) $post->ID;
+		$node = null;
+		$full = false;
+		foreach ( array( "//*[@data-elementor-id='$id'][@data-elementor-type!='header'][@data-elementor-type!='footer']", '//main', "//*[contains(concat(' ',normalize-space(@class),' '),' entry-content ')]", '//article', '//body' ) as $i => $q ) {
+			$l = $xp->query( $q );
+			if ( $l && $l->length ) {
+				$node = $l->item( 0 );
+				$full = $i > 0;
+				break;
+			}
+		}
+		if ( ! $node ) {
+			return null;
+		}
+		if ( $full ) {
+			// Theme layout: drop the site header, menus, sidebars and footer inside the chosen area.
+			foreach ( iterator_to_array( $xp->query( './/header|.//nav|.//footer|.//aside|.//*[@data-elementor-type="header" or @data-elementor-type="footer" or @data-elementor-type="popup"]', $node ) ) as $n ) {
+				$n->parentNode->removeChild( $n );
+			}
+		}
+		$home  = strtolower( (string) wp_parse_url( home_url(), PHP_URL_HOST ) );
+		$self  = untrailingslashit( strtok( (string) get_permalink( $post ), '?#' ) );
+		$int   = array();
+		$ext   = 0;
+		$dof   = 0;
+		foreach ( $xp->query( './/a[@href]', $node ) as $a ) {
+			$href = trim( $a->getAttribute( 'href' ) );
+			if ( '' === $href || '#' === $href[0] || preg_match( '#^(mailto|tel|javascript|whatsapp|sms):#i', $href ) ) {
+				continue;
+			}
+			$host = strtolower( (string) wp_parse_url( $href, PHP_URL_HOST ) );
+			if ( '' === $host || $host === $home || 'www.' . $home === $host || 'www.' . $host === $home ) {
+				$u = untrailingslashit( strtok( '' === $host ? home_url( '/' . ltrim( $href, '/' ) ) : $href, '?#' ) );
+				if ( $u === $self || preg_match( '#/(wp-admin|wp-login\.php|feed)(/|$)#', $u ) ) {
+					continue;
+				}
+				$int[ $u ] = true;
+			} else {
+				$ext++;
+				if ( false === stripos( $a->getAttribute( 'rel' ), 'nofollow' ) ) {
+					$dof++;
+				}
+			}
+		}
+		$text = trim( preg_replace( '/\s+/u', ' ', html_entity_decode( $node->textContent, ENT_QUOTES, 'UTF-8' ) ) );
+		return array(
+			'internal' => count( $int ),
+			'external' => $ext,
+			'dofollow' => $dof,
+			'words'    => count( SSAI_Content::words( $text ) ),
+			'text'     => mb_substr( $text, 0, 60000 ),
+			'links'    => array_slice( array_keys( $int ), 0, 30 ),
+		);
 	}
 
 	/** Words that make titles more clickable (Persian + English). */
@@ -129,6 +212,27 @@ class SSAI_Analyzer {
 				'items' => array(),
 				'data'  => array(),
 			);
+		}
+
+		// The saved content can miss what the page really shows (Elementor loop grids, global widgets,
+		// shortcodes); the published page fills those gaps.
+		$ph       = self::page_h1s( $post_id, $live );
+		$live_txt = '';
+		if ( $ph && ! empty( $ph['main'] ) ) {
+			$lm = $ph['main'];
+			if ( $lm['internal'] > $d['internal_links'] ) {
+				$d['internal_links'] = $lm['internal'];
+				$d['links_live']     = true;
+			}
+			if ( $lm['external'] > $d['external_links'] ) {
+				$d['external_links'] = $lm['external'];
+				$d['dofollow_links'] = max( $d['dofollow_links'], $lm['dofollow'] );
+			}
+			if ( $lm['words'] > $d['words'] ) {
+				$d['words'] = $lm['words'];
+				$d['text']  = $lm['text'];
+				$live_txt   = ' (در صفحه منتشرشده)';
+			}
 		}
 
 		$items  = array();
@@ -206,9 +310,9 @@ class SSAI_Analyzer {
 		}
 
 		if ( $d['words'] < 600 ) {
-			$items[] = self::item( 'words', $d['words'] < 300 ? 'error' : 'warning', sprintf( 'محتوا %d کلمه دارد؛ حداقل ۶۰۰ کلمه محتوای مفید توصیه می‌شود (برای صفحه تماس/خدمات کوتاه‌تر هم قابل قبول است).', $d['words'] ), 'basic', 'rewrite', 'محتوا را کامل‌تر کن: بخش‌های مفید و واقعی مثل توضیح خدمات، مراحل، سؤالات متداول کاربران و نکات کاربردی اضافه کن. هیچ اطلاعات، قیمت یا ادعای ساختگی ننویس.' );
+			$items[] = self::item( 'words', $d['words'] < 300 ? 'error' : 'warning', sprintf( 'محتوا %d کلمه دارد' . $live_txt . '؛ حداقل ۶۰۰ کلمه محتوای مفید توصیه می‌شود (برای صفحه تماس/خدمات کوتاه‌تر هم قابل قبول است).', $d['words'] ), 'basic', 'rewrite', 'محتوا را کامل‌تر کن: بخش‌های مفید و واقعی مثل توضیح خدمات، مراحل، سؤالات متداول کاربران و نکات کاربردی اضافه کن. هیچ اطلاعات، قیمت یا ادعای ساختگی ننویس.' );
 		} else {
-			$items[] = self::item( 'words', 'good', sprintf( 'طول محتوا خوب است (%d کلمه).', $d['words'] ), 'basic' );
+			$items[] = self::item( 'words', 'good', sprintf( 'طول محتوا خوب است (%d کلمه%s).', $d['words'], $live_txt ), 'basic' );
 		}
 
 		/* ------------------------------------------------ Additional */
@@ -296,7 +400,7 @@ class SSAI_Analyzer {
 		}
 
 		$items[] = $d['internal_links'] > 0
-			? self::item( 'internal', 'good', sprintf( 'به %d صفحه دیگر از سایت خودتان لینک داده‌اید.', $d['internal_links'] ), 'additional' )
+			? self::item( 'internal', 'good', sprintf( 'به %d صفحه دیگر از سایت خودتان لینک داده‌اید%s.', $d['internal_links'], ! empty( $d['links_live'] ) ? ' (در صفحه منتشرشده)' : '' ), 'additional' )
 			: self::item( 'internal', 'error', 'لینک داخلی به صفحات دیگر سایت وجود ندارد.', 'additional', 'links' );
 
 		/* ------------------------------------------------ Title readability */
@@ -337,7 +441,6 @@ class SSAI_Analyzer {
 			}
 		}
 		// H1s of the published page as visitors and Google see it (theme title + builder headings).
-		$ph = self::page_h1s( $post_id, $live );
 		if ( $ph ) {
 			$list = $ph['h1'];
 			$src  = 'ahrefs' === $ph['src'] ? ' (طبق آخرین گزارش Ahrefs)' : ' (در صفحه منتشرشده)';
