@@ -1,8 +1,11 @@
 === Smart SEO AI Assistant ===
+Contributors: arst
+Author: ARST
+Company: NFPSMART
 Requires at least: 6.0
 Requires PHP: 7.4
 License: GPLv2 or later
-Stable tag: 2.2.7
+Stable tag: 2.3.0
 
 بررسی سئوی محتوا با قوانین داخلی + هوش مصنوعی رایگان، و اعمال پیشنهادها فقط با تأیید مدیر.
 

@@ -280,3 +280,12 @@
 .ssai .ssai-h1-list { margin: 0; padding-inline-start: 18px; }
 .ssai html { scroll-behavior: smooth; }
 .ssai [id^="ssai-ah-"] { scroll-margin-top: 40px; }
+
+/* Bulk schema review */
+.ssai-bulk td, .ssai-bulk th { vertical-align: top; }
+.ssai-bulk select { max-width: 300px; }
+.ssai-bulk-issues { margin: 6px 0 0; }
+.ssai-bulk-issues li { margin: 2px 0; font-size: 12px; }
+.ssai-bulk-error { color: #b32d2e; }
+.ssai-bulk-warning { color: #996800; }
+.ssai-bulk-info { color: #50575e; }
