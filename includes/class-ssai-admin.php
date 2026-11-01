@@ -19,6 +19,7 @@ class SSAI_Admin {
 			add_action( $h, array( __CLASS__, 'flush_row_meta' ), 10, 3 );
 		}
 
+		add_filter( 'wp_php_error_message', array( __CLASS__, 'ajax_fatal_message' ), 10, 2 );
 		foreach ( array( 'rules', 'ai_analyze', 'ai_rewrite', 'ai_fix', 'apply', 'undo', 'test', 'fetch_updates' ) as $a ) {
 			add_action( 'wp_ajax_ssai_' . $a, array( __CLASS__, 'ajax_' . $a ) );
 		}
@@ -373,6 +374,30 @@ class SSAI_Admin {
 			?>
 		</div>
 		<?php
+	}
+
+	/**
+	 * A PHP fatal error inside one of our AJAX requests is returned as JSON with the real reason
+	 * (instead of an empty "500"), so it shows in the plugin screen. Details only for administrators.
+	 */
+	public static function ajax_fatal_message( $message, $error ) {
+		$action = isset( $_REQUEST['action'] ) ? sanitize_key( wp_unslash( $_REQUEST['action'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
+		if ( ! wp_doing_ajax() || 0 !== strpos( $action, 'ssai_' ) ) {
+			return $message;
+		}
+		$text = 'خطای PHP روی سرور رخ داد.';
+		if ( current_user_can( 'manage_options' ) && is_array( $error ) ) {
+			$msg  = preg_replace( '/\s+/', ' ', preg_replace( '/\s*Stack trace:.*$/s', '', (string) $error['message'] ) );
+			$msg  = str_replace( wp_normalize_path( ABSPATH ), '', wp_normalize_path( $msg ) );
+			$file = str_replace( wp_normalize_path( ABSPATH ), '', wp_normalize_path( (string) $error['file'] ) );
+			$text .= ' ' . mb_substr( $msg, 0, 400 ) . ' — ' . $file . ':' . (int) $error['line'];
+			if ( false !== stripos( $msg, 'Maximum execution time' ) ) {
+				$text .= ' (زمان اجرای PHP هاست کم است؛ از هاست بخواهید max_execution_time را به ۱۸۰ ثانیه برساند.)';
+			} elseif ( false !== stripos( $msg, 'Allowed memory size' ) ) {
+				$text .= ' (حافظه PHP کم است؛ WP_MEMORY_LIMIT را در wp-config.php بیشتر کنید.)';
+			}
+		}
+		return wp_json_encode( array( 'success' => false, 'data' => array( 'message' => $text ) ), JSON_UNESCAPED_UNICODE );
 	}
 
 	/* ---------------------------------------------------------------- Settings page */
