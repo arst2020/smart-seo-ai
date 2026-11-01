@@ -249,8 +249,14 @@ class SSAI_Ahrefs {
 		if ( class_exists( 'ZipArchive' ) ) {
 			$z = new ZipArchive();
 			if ( true === $z->open( $path ) ) {
+				$total = 0;
 				for ( $j = 0; $j < $z->numFiles; $j++ ) {
 					$en = $z->getNameIndex( $j );
+					$st = $z->statIndex( $j );
+					$sz = $st ? (int) $st['size'] : 0;
+					if ( $sz > 50 * MB_IN_BYTES || ( $total += $sz ) > 150 * MB_IN_BYTES ) {
+						continue; // Too big to be an Ahrefs export (protects memory).
+					}
 					if ( preg_match( '/\.csv$/i', $en ) && false === strpos( $en, '__MACOSX' ) ) {
 						$out[] = array( basename( $en ), (string) $z->getFromIndex( $j ) );
 					}

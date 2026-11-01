@@ -243,8 +243,16 @@ class SSAI_Redirects {
 		}
 		$to = $row->target;
 		if ( $replace ) {
+			$abs = (bool) preg_match( '#^https?://#i', trim( $to ) );
 			foreach ( $replace as $i => $g ) {
 				$to = str_replace( '$' . $i, $g, $to );
+			}
+			$to = preg_replace( '/[\r\n\t]/', '', $to );
+			if ( ! $abs ) {
+				// Only the admin's own target may point elsewhere; text taken from the visited address may not.
+				$to = '/' . ltrim( preg_replace( '#^[a-z][a-z0-9+.-]*:/*#i', '', $to ), '/\\' );
+				$row->url = (int) $row->code >= 400 ? '' : home_url( $to );
+				return $row;
 			}
 		}
 		$row->url = (int) $row->code >= 400 ? '' : self::target_url( $to );

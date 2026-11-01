@@ -24,7 +24,7 @@ class SSAI_Site {
 	}
 
 	public static function menu() {
-		add_submenu_page( 'smart-seo-ai', 'نمای کلی سایت', 'نمای کلی سایت', 'edit_posts', self::SLUG, array( __CLASS__, 'page' ) );
+		add_submenu_page( 'smart-seo-ai', 'نمای کلی سایت', 'نمای کلی سایت', 'edit_others_posts', self::SLUG, array( __CLASS__, 'page' ) );
 	}
 
 	public static function url( $args = array() ) {

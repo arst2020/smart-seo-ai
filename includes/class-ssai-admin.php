@@ -43,7 +43,7 @@ class SSAI_Admin {
 
 	public static function menu() {
 		add_menu_page( 'Smart SEO AI', 'Smart SEO AI', 'edit_posts', 'smart-seo-ai', array( 'SSAI_Dashboard', 'page' ), 'dashicons-search', 81 );
-		add_submenu_page( 'smart-seo-ai', 'داشبورد Smart SEO AI', 'داشبورد', 'edit_posts', 'smart-seo-ai', array( 'SSAI_Dashboard', 'page' ) );
+		add_submenu_page( 'smart-seo-ai', 'داشبورد Smart SEO AI', 'داشبورد', 'edit_others_posts', 'smart-seo-ai', array( 'SSAI_Dashboard', 'page' ) );
 		add_submenu_page( 'smart-seo-ai', 'بررسی سئوی صفحه‌ها', 'بررسی صفحه‌ها', 'edit_posts', 'smart-seo-ai-pages', array( __CLASS__, 'page_scan' ) );
 		add_submenu_page( 'smart-seo-ai', 'تنظیمات هوش مصنوعی و سرویس‌ها', 'هوش مصنوعی و سرویس‌ها', 'manage_options', 'smart-seo-ai-settings', array( __CLASS__, 'page_settings' ) );
 	}
@@ -223,6 +223,7 @@ class SSAI_Admin {
 			array(
 				'post_type'      => 'any' === $type ? $types : $type,
 				'post_status'    => array( 'publish', 'draft', 'pending', 'future', 'private' ),
+				'perm'           => 'editable', // Authors/contributors see only their own posts.
 				'posts_per_page' => 2000,
 				'orderby'        => 'modified',
 				'order'          => 'DESC',
@@ -665,6 +666,11 @@ class SSAI_Admin {
 	public static function ajax_apply() {
 		$post_id = self::post_from_request( true );
 		$field   = isset( $_POST['field'] ) ? sanitize_key( wp_unslash( $_POST['field'] ) ) : '';
+		// Raw Elementor JSON is never accepted from the browser (it would bypass Elementor's own sanitising);
+		// Elementor text comes only from the server-side stored AI rewrite ("content" + token) or from undo.
+		if ( ! in_array( $field, array( 'title', 'slug', 'meta_description', 'focus_keyword', 'seo_title', 'image_alt', 'content' ), true ) ) {
+			wp_send_json_error( array( 'message' => 'فیلد نامعتبر.' ), 400 );
+		}
 		$value   = isset( $_POST['value'] ) ? wp_unslash( $_POST['value'] ) : ''; // Sanitised per field in SSAI_Applier.
 		$extra   = array();
 

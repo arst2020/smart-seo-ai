@@ -38,7 +38,7 @@ class SSAI_Schema {
 				'@context' => 'https://schema.org',
 				'@graph'   => $g,
 			),
-			JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+			JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG // HEX_TAG: "</script>" in a value cannot end the tag.
 		) . '</script>' . "\n"; // phpcs:ignore WordPress.Security.EscapeOutput -- JSON.
 	}
 
