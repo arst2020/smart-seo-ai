@@ -144,7 +144,7 @@ class SSAI_Admin {
 	public static function scan_row( $post ) {
 		$key = 'ssai_row_' . $post->ID;
 		$row = get_transient( $key );
-		if ( is_array( $row ) && isset( $row['mod'] ) && $row['mod'] === $post->post_modified_gmt ) {
+		if ( is_array( $row ) && isset( $row['mod'], $row['words'] ) && $row['mod'] === $post->post_modified_gmt ) {
 			return $row;
 		}
 		$r   = SSAI_Analyzer::rules( $post->ID );
@@ -166,6 +166,7 @@ class SSAI_Admin {
 			'title' => html_entity_decode( get_the_title( $post ), ENT_QUOTES, 'UTF-8' ),
 			'kw'    => $r['data']['focus_keyword'],
 			'score' => (int) $r['score'],
+			'words' => isset( $r['data']['words'] ) ? (int) $r['data']['words'] : 0,
 			'err'   => $err,
 			'wrn'   => $wrn,
 			'top'   => $top,

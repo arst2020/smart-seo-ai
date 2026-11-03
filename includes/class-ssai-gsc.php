@@ -224,6 +224,37 @@ class SSAI_GSC {
 		return self::api( 'POST', self::API . '/sites/' . rawurlencode( $site ) . '/searchAnalytics/query', $body );
 	}
 
+	/** Site-wide search queries of the last 90 days (cached 12 hours), for content ideas. */
+	public static function site_queries() {
+		$c = get_transient( 'ssai_gsc_site_queries' );
+		if ( is_array( $c ) ) {
+			return $c;
+		}
+		list( $s, $e ) = self::range( 90 );
+		$r             = self::query(
+			array(
+				'startDate'  => $s,
+				'endDate'    => $e,
+				'dimensions' => array( 'query' ),
+				'rowLimit'   => 1000,
+			)
+		);
+		if ( is_wp_error( $r ) ) {
+			return $r;
+		}
+		$out = array();
+		foreach ( isset( $r['rows'] ) ? $r['rows'] : array() as $row ) {
+			$out[] = array(
+				'query'       => $row['keys'][0],
+				'clicks'      => (int) $row['clicks'],
+				'impressions' => (int) $row['impressions'],
+				'position'    => (float) $row['position'],
+			);
+		}
+		set_transient( 'ssai_gsc_site_queries', $out, 12 * HOUR_IN_SECONDS );
+		return $out;
+	}
+
 	private static function page_filter( $url ) {
 		return array(
 			array(

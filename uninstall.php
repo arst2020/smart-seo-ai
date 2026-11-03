@@ -11,6 +11,9 @@ if ( is_array( $ssai_o ) && ! empty( $ssai_o['indexnow_key'] ) && preg_match( '/
 delete_option( 'ssai_settings' );
 delete_option( 'ssai_gsc' );
 delete_option( 'ssai_ai_last' );
+delete_option( 'ssai_brand' );
+delete_option( 'ssai_calendar' );
+delete_option( 'ssai_model_note' );
 delete_option( 'ssai_google_updates' );
 wp_clear_scheduled_hook( 'ssai_fetch_google_updates' );
 wp_clear_scheduled_hook( 'ssai_indexnow_send' );

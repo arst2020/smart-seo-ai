@@ -289,3 +289,53 @@
 .ssai-bulk-error { color: #b32d2e; }
 .ssai-bulk-warning { color: #996800; }
 .ssai-bulk-info { color: #50575e; }
+
+/* Content studio */
+.ssai-studio mark.ssai-review, .ssai-cs-preview mark.ssai-review, .ssai-cs-short-out mark.ssai-review { background: #fcf0c3; color: #6b4f00; padding: 0 3px; border-radius: 3px; }
+.ssai-cs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px 16px; align-items: end; }
+.ssai-cs-grid label, .ssai-cs-field { display: flex; flex-direction: column; gap: 4px; }
+.ssai-cs-grid input[type=text], .ssai-cs-grid select, .ssai-cs-grid textarea, .ssai-cs-field input, .ssai-cs-field select, .ssai-cs-field textarea { width: 100%; max-width: 100%; }
+.ssai-cs-wide { grid-column: 1 / -1; }
+.ssai-cs-field > span { font-weight: 600; }
+.ssai-cs-write { display: grid; grid-template-columns: 280px 1fr; gap: 16px; align-items: start; }
+.ssai-cs-queue ul { margin: 0; }
+.ssai-cs-queue li { padding: 6px 0; border-bottom: 1px solid #f0f0f1; }
+.ssai-cs-queue li.is-current a { font-weight: 700; }
+.ssai-cs-queue .description { display: block; font-size: 12px; }
+.ssai-cs-badge { display: inline-block; font-size: 11px; padding: 1px 6px; border-radius: 10px; background: #f0f0f1; color: #50575e; margin-inline-start: 4px; }
+.ssai-cs-st-outline, .ssai-cs-st-writing { background: #fcf0c3; color: #6b4f00; }
+.ssai-cs-st-draft { background: #e5f0fa; color: #135e96; }
+.ssai-cs-st-scheduled { background: #ede4f7; color: #5b2d90; }
+.ssai-cs-st-published, .ssai-cs-st-applied { background: #e6f4ea; color: #1e6a34; }
+.ssai-cs-outline { display: flex; flex-direction: column; gap: 8px; margin: 8px 0; }
+.ssai-cs-row { border: 1px solid #dcdcde; border-radius: 6px; padding: 8px; background: #fff; }
+.ssai-cs-row.lvl-3 { margin-inline-start: 32px; }
+.ssai-cs-row.lvl-0 { background: #f6f7f7; }
+.ssai-cs-row-top { display: flex; gap: 6px; align-items: center; }
+.ssai-cs-row-top .ssai-cs-h { flex: 1; font-weight: 600; }
+.ssai-cs-row textarea { width: 100%; margin-top: 6px; }
+.ssai-cs-img { display: flex; gap: 6px; margin-top: 6px; }
+.ssai-cs-img input { flex: 1; }
+.ssai-cs-del { color: #b32d2e; }
+.ssai-cs-count { display: block; }
+.ssai-warn { color: #996800; }
+.ssai-cs-progress progress { width: 240px; vertical-align: middle; }
+.ssai-cs-preview { max-height: 560px; overflow: auto; border: 1px solid #dcdcde; border-radius: 6px; padding: 12px 20px; background: #fff; line-height: 1.9; }
+.ssai-cs-preview .ssai-image-hint, .ssai-cs-short-out .ssai-image-hint { border: 2px dashed #8c8f94; padding: 10px; color: #50575e; background: #f6f7f7; }
+.ssai-cs-short-box { border: 1px solid #dcdcde; border-radius: 6px; padding: 8px 12px; margin: 6px 0; background: #fff; }
+.ssai-cs-month { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.ssai-cs-dh { font-weight: 600; text-align: center; padding: 4px; }
+.ssai-cs-day { min-height: 84px; border: 1px solid #dcdcde; border-radius: 4px; padding: 4px; background: #fff; display: flex; flex-direction: column; gap: 3px; }
+.ssai-cs-day.is-empty { background: transparent; border-color: transparent; }
+.ssai-cs-day.is-today { border-color: #2271b1; box-shadow: 0 0 0 1px #2271b1; }
+.ssai-cs-dn { font-size: 11px; color: #646970; }
+.ssai-cs-ev { display: block; font-size: 11px; line-height: 1.4; padding: 2px 4px; border-radius: 3px; text-decoration: none; background: #f0f0f1; }
+.ssai-cs-legend .ssai-cs-badge { margin: 2px; }
+.ssai-cs-form label { display: block; margin-bottom: 10px; font-weight: 600; }
+.ssai-cs-form textarea, .ssai-cs-form input[type=text], .ssai-cs-form input[type=url] { display: block; width: 100%; max-width: 640px; font-weight: 400; }
+@media (max-width: 960px) { .ssai-cs-write { grid-template-columns: 1fr; } .ssai-cs-day { min-height: 60px; } }
+.ssai-cs-preview ul, .ssai-cs-short-box ul { list-style: disc; padding-inline-start: 22px; }
+.ssai-cs-preview ol, .ssai-cs-short-box ol { list-style: decimal; padding-inline-start: 22px; }
+.ssai-cs-grid fieldset { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; border: 0; padding: 0; margin: 0; }
+.ssai-cs-grid fieldset legend { font-weight: 600; margin-bottom: 4px; }
+.ssai-cs-grid fieldset label { display: inline-flex; flex-direction: row; align-items: center; gap: 4px; }
