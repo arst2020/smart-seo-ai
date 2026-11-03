@@ -339,3 +339,10 @@
 .ssai-cs-grid fieldset { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; border: 0; padding: 0; margin: 0; }
 .ssai-cs-grid fieldset legend { font-weight: 600; margin-bottom: 4px; }
 .ssai-cs-grid fieldset label { display: inline-flex; flex-direction: row; align-items: center; gap: 4px; }
+.ssai-cs-img { align-items: center; flex-wrap: wrap; }
+.ssai-cs-img .ssai-cs-img-desc { flex: 2 1 220px; }
+.ssai-cs-img .ssai-cs-img-alt { flex: 2 1 200px; }
+.ssai-cs-thumb { width: 48px; height: 48px; object-fit: cover; border-radius: 4px; border: 1px solid #dcdcde; }
+.ssai-cs-flash { animation: ssaiFlash 1.2s; }
+@keyframes ssaiFlash { from { background: #fcf0c3; } to { background: #fff; } }
+.ssai-cs-preview figure img { max-width: 100%; height: auto; max-height: 280px; }

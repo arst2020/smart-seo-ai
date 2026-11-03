@@ -203,12 +203,13 @@
 			var list = [];
 			rows.querySelectorAll('.ssai-cs-row').forEach(function (r) {
 				var img = r.querySelector('.ssai-cs-img-desc').value.trim();
+				var imgIdV = parseInt(r.querySelector('.ssai-cs-img-id').value, 10) || 0;
 				list.push({
 					from: parseInt(r.dataset.from, 10),
 					level: parseInt(r.querySelector('.ssai-cs-lvl').value, 10),
 					heading: r.querySelector('.ssai-cs-h').value,
 					notes: r.querySelector('.ssai-cs-notes').value,
-					image: img ? { desc: img, alt: r.querySelector('.ssai-cs-img-alt').value } : null
+					image: (img || imgIdV) ? { desc: img, alt: r.querySelector('.ssai-cs-img-alt').value, id: imgIdV } : null
 				});
 			});
 			return {
@@ -303,15 +304,40 @@
 		var lvl = options(h('select', { class: 'ssai-cs-lvl' }), { 0: 'مقدمه', 2: 'H2', 3: 'H3' }, o.level);
 		var head = h('input', { type: 'text', class: 'ssai-cs-h large-text', value: o.level ? o.heading : '', placeholder: o.level ? 'تیتر' : '(بدون تیتر)' });
 		var notes = h('textarea', { class: 'ssai-cs-notes', rows: 2, placeholder: 'این بخش چه چیزهایی را پوشش دهد' }); notes.value = o.notes || '';
-		var imgD = h('input', { type: 'text', class: 'ssai-cs-img-desc', value: o.image ? o.image.desc : '', placeholder: 'تصویر پیشنهادی (اختیاری)' });
-		var imgA = h('input', { type: 'text', class: 'ssai-cs-img-alt', value: o.image ? o.image.alt : '', placeholder: 'متن alt' });
+		var im = o.image || {};
+		var imgId = h('input', { type: 'hidden', class: 'ssai-cs-img-id', value: im.id || '' });
+		var imgD = h('input', { type: 'text', class: 'ssai-cs-img-desc', value: im.desc || '', placeholder: 'چه تصویری این‌جا مناسب است (راهنما)' });
+		var imgA = h('input', { type: 'text', class: 'ssai-cs-img-alt', value: im.alt || '', placeholder: 'متن alt' });
+		var thumb = h('img', { class: 'ssai-cs-thumb', alt: '', src: im.thumb || '', hidden: !im.thumb });
+		var pick = h('button', { type: 'button', class: 'button button-small', text: im.id ? 'تغییر تصویر' : '🖼 انتخاب از گالری' });
+		var drop = h('button', { type: 'button', class: 'button-link ssai-cs-del', text: 'حذف تصویر', hidden: !im.id });
+		var altAi = h('button', { type: 'button', class: 'button button-small', text: '✦ پیشنهاد alt' });
+		pick.addEventListener('click', function () {
+			if (!window.wp || !wp.media) { msg('کتابخانه رسانه بارگذاری نشد؛ صفحه را تازه کنید.', 'error'); return; }
+			var frame = wp.media({ title: 'انتخاب تصویر برای این بخش', library: { type: 'image' }, multiple: false, button: { text: 'استفاده در این بخش' } });
+			frame.on('select', function () {
+				var a = frame.state().get('selection').first().toJSON();
+				imgId.value = a.id;
+				thumb.src = a.sizes && a.sizes.thumbnail ? a.sizes.thumbnail.url : a.url;
+				thumb.hidden = false; drop.hidden = false; pick.textContent = 'تغییر تصویر';
+				if (!imgA.value && a.alt) imgA.value = a.alt;
+			});
+			frame.open();
+		});
+		drop.addEventListener('click', function () { imgId.value = ''; thumb.hidden = true; thumb.removeAttribute('src'); drop.hidden = true; pick.textContent = '🖼 انتخاب از گالری'; });
+		altAi.addEventListener('click', function () {
+			busy(altAi, true, '…');
+			request('alt', { item: item.id, heading: head.value, desc: imgD.value, att: imgId.value })
+				.then(function (d) { imgA.value = d.alt; imgA.classList.add('ssai-cs-flash'); busy(altAi, false); })
+				.catch(function (er) { msg(er.message, 'error'); busy(altAi, false); });
+		});
 		var done = i >= 0 && item.sections && item.sections[i];
 		var up = h('button', { type: 'button', class: 'button-link', title: 'بالا', text: '▲' });
 		var down = h('button', { type: 'button', class: 'button-link', title: 'پایین', text: '▼' });
 		var rm = h('button', { type: 'button', class: 'button-link ssai-cs-del', title: 'حذف', text: '✕' });
 		var row = h('div', { class: 'ssai-cs-row lvl-' + o.level, 'data-from': i }, [
 			h('div', { class: 'ssai-cs-row-top' }, [lvl, head, h('span', { class: done ? 'ssai-ok' : 'description', text: done ? '✓ نوشته شده' : '' }), up, down, rm]),
-			notes, h('div', { class: 'ssai-cs-img' }, [imgD, imgA])
+			notes, h('div', { class: 'ssai-cs-img' }, [imgId, thumb, pick, drop, imgD, imgA, altAi])
 		]);
 		if (done && i >= 0) {
 			var redo = h('button', { type: 'button', class: 'button button-small', text: 'بازنویسی این بخش' });

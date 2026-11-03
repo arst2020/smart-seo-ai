@@ -25,7 +25,15 @@ class SSAI_Studio {
 		add_action( 'admin_notices', array( __CLASS__, 'guard_notice' ) );
 		add_action( 'wp_head', array( __CLASS__, 'marker_css' ) );
 		add_action( 'enqueue_block_editor_assets', array( __CLASS__, 'editor_css' ) );
-		foreach ( array( 'profile_save', 'profile_learn', 'ideas', 'item_save', 'item_get', 'item_delete', 'outline', 'section', 'save', 'schedule', 'calendar_save', 'autofill', 'short', 'short_apply', 'short_undo', 'shorts' ) as $a ) {
+		add_action(
+			'admin_enqueue_scripts',
+			function ( $hook ) {
+				if ( false !== strpos( (string) $hook, self::SLUG ) ) {
+					wp_enqueue_media(); // Media library picker for the section images.
+				}
+			}
+		);
+		foreach ( array( 'profile_save', 'profile_learn', 'ideas', 'item_save', 'item_get', 'item_delete', 'outline', 'section', 'save', 'schedule', 'calendar_save', 'autofill', 'alt', 'short', 'short_apply', 'short_undo', 'shorts' ) as $a ) {
 			add_action( 'wp_ajax_ssai_cs_' . $a, array( __CLASS__, 'ajax_' . $a ) );
 		}
 	}
@@ -325,7 +333,24 @@ class SSAI_Studio {
 		return trim( self::marks( $html ) );
 	}
 
+	/** A chosen media-library image as HTML (same markup the image block saves). */
+	private static function image_tag( $img ) {
+		$id  = (int) $img['id'];
+		$src = wp_get_attachment_image_url( $id, 'large' );
+		if ( ! $src ) {
+			return '';
+		}
+		$alt = '' !== $img['alt'] ? $img['alt'] : (string) get_post_meta( $id, '_wp_attachment_image_alt', true );
+		return '<figure class="wp-block-image size-large"><img src="' . esc_url( $src ) . '" alt="' . esc_attr( $alt ) . '" class="wp-image-' . $id . '"/></figure>';
+	}
+
 	private static function image_hint( $img ) {
+		if ( ! empty( $img['id'] ) ) {
+			$tag = self::image_tag( $img );
+			if ( '' !== $tag ) {
+				return $tag;
+			}
+		}
 		if ( empty( $img['desc'] ) ) {
 			return '';
 		}
@@ -357,7 +382,12 @@ class SSAI_Studio {
 				$out .= '<!-- wp:heading' . ( 3 === $lvl ? ' {"level":3}' : '' ) . " -->\n<h$lvl class=\"wp-block-heading\">" . esc_html( $o['heading'] ) . "</h$lvl>\n<!-- /wp:heading -->\n\n";
 			}
 			if ( ! empty( $o['image'] ) ) {
-				$out .= "<!-- wp:paragraph {\"className\":\"ssai-image-hint\"} -->\n" . self::image_hint( $o['image'] ) . "\n<!-- /wp:paragraph -->\n\n";
+				$tag = ! empty( $o['image']['id'] ) ? self::image_tag( $o['image'] ) : '';
+				if ( '' !== $tag ) {
+					$out .= '<!-- wp:image {"id":' . (int) $o['image']['id'] . ',"sizeSlug":"large","linkDestination":"none"} -->' . "\n" . $tag . "\n<!-- /wp:image -->\n\n";
+				} elseif ( ! empty( $o['image']['desc'] ) ) {
+					$out .= "<!-- wp:paragraph {\"className\":\"ssai-image-hint\"} -->\n" . self::image_hint( $o['image'] ) . "\n<!-- /wp:paragraph -->\n\n";
+				}
 			}
 			$out .= self::html_to_blocks( isset( $m['sections'][ $i ] ) ? $m['sections'][ $i ] : '' );
 		}
@@ -646,6 +676,11 @@ class SSAI_Studio {
 
 	/** Item for the browser (adds preview HTML and flags). */
 	private static function out( $m ) {
+		foreach ( $m['outline'] as $i => $o ) {
+			if ( ! empty( $o['image']['id'] ) ) {
+				$m['outline'][ $i ]['image']['thumb'] = (string) wp_get_attachment_image_url( (int) $o['image']['id'], 'thumbnail' );
+			}
+		}
 		$m['preview']   = $m['outline'] ? self::html( $m ) : '';
 		$m['marks']     = substr_count( $m['preview'], 'ssai-review' );
 		$m['written']   = count( $m['sections'] );
@@ -961,11 +996,19 @@ class SSAI_Studio {
 				continue;
 			}
 			$img = null;
-			if ( ! empty( $o['image'] ) && is_array( $o['image'] ) && ! empty( $o['image']['desc'] ) ) {
-				$img = array(
-					'desc' => sanitize_text_field( (string) $o['image']['desc'] ),
-					'alt'  => isset( $o['image']['alt'] ) ? sanitize_text_field( (string) $o['image']['alt'] ) : '',
-				);
+			if ( ! empty( $o['image'] ) && is_array( $o['image'] ) ) {
+				$aid = isset( $o['image']['id'] ) ? absint( $o['image']['id'] ) : 0;
+				if ( $aid && ! wp_attachment_is_image( $aid ) ) {
+					$aid = 0;
+				}
+				$desc = isset( $o['image']['desc'] ) ? sanitize_text_field( (string) $o['image']['desc'] ) : '';
+				if ( '' !== $desc || $aid ) {
+					$img = array(
+						'desc' => $desc,
+						'alt'  => isset( $o['image']['alt'] ) ? sanitize_text_field( (string) $o['image']['alt'] ) : '',
+						'id'   => $aid,
+					);
+				}
 			}
 			$out[] = array(
 				'level'   => max( 0, min( 3, $lvl ) ),
@@ -1188,6 +1231,18 @@ class SSAI_Studio {
 			update_post_meta( $pid, '_elementor_edit_mode', 'builder' );
 			SSAI_Elementor::save_data( $pid, $data );
 		}
+		// Chosen images: fill an empty alt in the library, and use the first one as featured image if none is set.
+		foreach ( $m['outline'] as $o ) {
+			if ( ! empty( $o['image']['id'] ) ) {
+				$aid = (int) $o['image']['id'];
+				if ( '' !== $o['image']['alt'] && '' === (string) get_post_meta( $aid, '_wp_attachment_image_alt', true ) && current_user_can( 'edit_post', $aid ) ) {
+					update_post_meta( $aid, '_wp_attachment_image_alt', $o['image']['alt'] );
+				}
+				if ( ! has_post_thumbnail( $pid ) ) {
+					set_post_thumbnail( $pid, $aid );
+				}
+			}
+		}
 		if ( '' !== $m['seo']['seo_title'] ) {
 			SSAI_Content::set_seo_title( $pid, $m['seo']['seo_title'] );
 		}
@@ -1258,6 +1313,41 @@ class SSAI_Studio {
 			wp_send_json_error( array( 'message' => 'منتشر نشد؛ پیش‌نویس هنوز علامت بررسی دارد.' ) );
 		}
 		wp_send_json_success( array( 'item' => self::out( self::item( $m['id'] ) ), 'message' => 'publish' === $st ? 'منتشر شد.' : 'زمان‌بندی شد: ' . $date ) );
+	}
+
+	/** Suggest alt text for one section image (uses the section, the keyword and the chosen file). */
+	public static function ajax_alt() {
+		self::guard();
+		$m   = self::req_item();
+		$aid = isset( $_POST['att'] ) ? absint( $_POST['att'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification
+		$file = array();
+		if ( $aid && wp_attachment_is_image( $aid ) ) {
+			$a    = get_post( $aid );
+			$file = array(
+				'file_name' => wp_basename( (string) get_attached_file( $aid ) ),
+				'title'     => $a ? $a->post_title : '',
+				'caption'   => $a ? $a->post_excerpt : '',
+				'current_alt' => (string) get_post_meta( $aid, '_wp_attachment_image_alt', true ),
+			);
+		}
+		self::lock();
+		$job  = array(
+			'page_title'    => $m['title'],
+			'focus_keyword' => $m['keyword'],
+			'section'       => self::txt( 'heading' ),
+			'what_the_image_shows' => self::txt( 'desc' ),
+			'image_file'    => $file,
+		);
+		$user = 'Write the alt text for an image in this section: describe what the image shows in 6-14 words, specific and natural; include the focus keyword only if it truly fits; no "image of"/"picture of"; never claim things the image may not show. Return JSON {"alt":"..."} for: ' . wp_json_encode( $job, JSON_UNESCAPED_UNICODE );
+		$r    = SSAI_AI_Client::chat_json( self::system( $m ), $user );
+		if ( is_wp_error( $r ) ) {
+			wp_send_json_error( array( 'message' => $r->get_error_message() ) );
+		}
+		$alt = isset( $r['alt'] ) ? trim( sanitize_text_field( preg_replace( '/\[\[.*?\]\]/u', '', (string) $r['alt'] ) ) ) : '';
+		if ( '' === $alt ) {
+			wp_send_json_error( array( 'message' => 'پیشنهادی برنگشت؛ دوباره امتحان کنید.' ) );
+		}
+		wp_send_json_success( array( 'alt' => mb_substr( $alt, 0, 150 ) ) );
 	}
 
 	public static function ajax_calendar_save() {
