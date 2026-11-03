@@ -228,8 +228,8 @@ class SSAI_Content {
 		if ( ! $post ) {
 			return null;
 		}
-		$builder = SSAI_Elementor::is_built( $post->ID ) ? 'elementor' : '';
-		$html    = 'elementor' === $builder ? SSAI_Elementor::html( $post->ID ) : (string) $post->post_content;
+		$builder = SSAI_Elementor::is_built( $post->ID ) ? 'elementor' : ( SSAI_Avada::is_built( $post->ID ) ? 'avada' : '' );
+		$html    = 'elementor' === $builder ? SSAI_Elementor::html( $post->ID ) : ( 'avada' === $builder ? SSAI_Avada::html( $post->ID ) : (string) $post->post_content );
 		if ( false === stripos( $html, '<p' ) && '' !== trim( $html ) ) {
 			$html = wpautop( $html );
 		}
@@ -309,7 +309,7 @@ class SSAI_Content {
 			'seo_title'        => self::get_seo_title( $post->ID ),
 			'seo_title_raw'    => self::get_seo_title_raw( $post->ID ),
 			'builder'          => $builder,
-			'html'             => 'elementor' === $builder ? $html : (string) $post->post_content,
+			'html'             => '' !== $builder ? $html : (string) $post->post_content,
 			'text'             => $text,
 			'words'            => count( self::words( $text ) ),
 			'headings'         => $headings,

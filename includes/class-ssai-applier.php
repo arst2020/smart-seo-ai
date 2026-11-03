@@ -22,6 +22,7 @@ class SSAI_Applier {
 			'image_alt'        => 'متن alt تصویر',
 			'content'          => 'محتوای کامل',
 			'elementor_text'   => 'متن ویجت‌های المنتور',
+			'avada_text'       => 'متن المان‌های آوادا',
 		);
 	}
 
@@ -168,6 +169,22 @@ class SSAI_Applier {
 					$new = sprintf( '%d ویجت متنی بازنویسی شد', $n );
 				}
 				$r = true;
+				break;
+
+			case 'avada_text':
+				// $value: array( 'avadaN:tag' => html ) when applying, or the full previous post_content when undoing.
+				$old = $post->post_content;
+				if ( is_string( $value ) ) {
+					$r   = wp_update_post( wp_slash( array( 'ID' => $post_id, 'post_content' => $value ) ), true );
+					$new = 'بازگردانی نسخه قبلی';
+				} else {
+					$n = SSAI_Avada::apply_text( $post_id, (array) $value );
+					if ( ! $n ) {
+						return new WP_Error( 'ssai_nothing', 'المان‌های موردنظر در صفحه پیدا نشدند (شاید صفحه تغییر کرده است).' );
+					}
+					$new = sprintf( '%d المان متنی آوادا بازنویسی شد', $n );
+					$r   = true;
+				}
 				break;
 
 			default:

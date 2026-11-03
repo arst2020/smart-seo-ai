@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Smart SEO AI Assistant
  * Description:       ساخت NFPSMART — افزونه کامل سئو با هوش مصنوعی رایگان: عنوان و متا، Schema (کسب‌وکار، مقاله، محصول ووکامرس)، نقشه سایت، ریدایرکت و ۴۰۴، Breadcrumb، بررسی محتوا، AEO/GEO، سرچ کنسول و بک‌لینک؛ سازگار با المنتور و WPML/Polylang؛ جایگزین Rank Math با انتقال اطلاعات. همه تغییرات فقط با تأیید مدیر.
- * Version:           2.4.4
+ * Version:           2.5.0
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            ARST (NFPSMART)
@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'SSAI_VERSION', '2.4.4' );
+define( 'SSAI_VERSION', '2.5.0' );
 define( 'SSAI_FILE', __FILE__ );
 define( 'SSAI_DIR', plugin_dir_path( __FILE__ ) );
 define( 'SSAI_URL', plugin_dir_url( __FILE__ ) );
@@ -28,6 +28,7 @@ require_once SSAI_DIR . 'includes/class-ssai-applier.php';
 require_once SSAI_DIR . 'includes/class-ssai-admin.php';
 require_once SSAI_DIR . 'includes/class-ssai-frontend.php';
 require_once SSAI_DIR . 'includes/class-ssai-elementor.php';
+require_once SSAI_DIR . 'includes/class-ssai-avada.php';
 require_once SSAI_DIR . 'includes/class-ssai-guidelines.php';
 require_once SSAI_DIR . 'includes/class-ssai-gsc.php';
 require_once SSAI_DIR . 'includes/class-ssai-report.php';
@@ -48,6 +49,7 @@ require_once SSAI_DIR . 'includes/class-ssai-linkfix.php';
 require_once SSAI_DIR . 'includes/class-ssai-ahrefs.php';
 require_once SSAI_DIR . 'includes/class-ssai-bulk-schema.php';
 require_once SSAI_DIR . 'includes/class-ssai-studio.php';
+require_once SSAI_DIR . 'includes/class-ssai-designer.php';
 
 register_activation_hook(
 	__FILE__,
@@ -85,5 +87,6 @@ add_action(
 		SSAI_Ahrefs::init();
 		SSAI_Bulk_Schema::init();
 		SSAI_Studio::init();
+		SSAI_Designer::init();
 	}
 );

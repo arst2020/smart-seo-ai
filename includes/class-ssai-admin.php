@@ -85,7 +85,8 @@ class SSAI_Admin {
 				'lastAi'    => is_array( $last_ai ) ? $last_ai : null,
 				'fields'    => SSAI_Applier::fields(),
 				'elementor' => (bool) $elementor,
-				'isBuilt'   => $post_id ? SSAI_Elementor::is_built( $post_id ) : false,
+				'isBuilt'   => $post_id ? ( SSAI_Elementor::is_built( $post_id ) || SSAI_Avada::is_built( $post_id ) ) : false,
+				'builder'   => $post_id ? ( SSAI_Elementor::is_built( $post_id ) ? 'المنتور' : ( SSAI_Avada::is_built( $post_id ) ? 'آوادا' : '' ) ) : '',
 				'elUrl'     => $post_id ? SSAI_Elementor::edit_url( $post_id ) : '',
 				'reportUrl' => $post_id ? SSAI_Report::url( $post_id ) : '',
 			)
@@ -728,7 +729,7 @@ class SSAI_Admin {
 				if ( empty( $value ) ) {
 					wp_send_json_error( array( 'message' => 'هیچ موردی انتخاب نشده است.' ) );
 				}
-				$field = 'elementor_text';
+				$field = SSAI_Avada::is_built( $post_id ) ? 'avada_text' : 'elementor_text';
 			} else {
 				$value = $stored['html'];
 			}

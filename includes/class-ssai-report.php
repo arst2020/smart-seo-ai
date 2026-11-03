@@ -152,7 +152,7 @@ class SSAI_Report {
 		$r    = SSAI_Analyzer::rules( $post_id, true );
 		$d    = $r['data'];
 		$url  = get_permalink( $post );
-		$edit = SSAI_Elementor::is_built( $post_id ) ? SSAI_Elementor::edit_url( $post_id ) : get_edit_post_link( $post_id, 'raw' ) . '#ssai-metabox';
+		$edit = SSAI_Elementor::is_built( $post_id ) ? SSAI_Elementor::edit_url( $post_id ) : ( SSAI_Avada::is_built( $post_id ) ? get_edit_post_link( $post_id, 'raw' ) : get_edit_post_link( $post_id, 'raw' ) . '#ssai-metabox' );
 		$ai   = get_post_meta( $post_id, SSAI_Analyzer::META_AI, true );
 
 		$errs  = 0;

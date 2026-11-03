@@ -150,7 +150,7 @@ class SSAI_Studio {
 			if ( ! $post || 'trash' === $post->post_status ) {
 				$m['post_id'] = 0;
 				$m['status']  = $m['sections'] ? 'writing' : ( $m['outline'] ? 'outline' : 'idea' );
-			} elseif ( 'publish' === $post->post_status && in_array( $m['type'], array( 'article', 'service' ), true ) && ! $m['target'] ) {
+			} elseif ( 'publish' === $post->post_status && in_array( $m['type'], array( 'article', 'service', 'design' ), true ) && ! $m['target'] ) {
 				$m['status'] = 'published';
 				$m['date']   = get_date_from_gmt( $post->post_date_gmt, 'Y-m-d H:i' );
 			} elseif ( 'future' === $post->post_status ) {
@@ -161,7 +161,7 @@ class SSAI_Studio {
 		return $m;
 	}
 
-	private static function store( $m ) {
+	public static function store( $m ) {
 		$title = '' !== $m['title'] ? $m['title'] : ( '' !== $m['topic'] ? $m['topic'] : '(بدون موضوع)' );
 		if ( empty( $m['id'] ) ) {
 			$id = wp_insert_post(
@@ -230,7 +230,7 @@ class SSAI_Studio {
 	}
 
 	/** The writer's brief: who we are, how we write, and the accuracy rules. */
-	private static function system( $m ) {
+	public static function system( $m ) {
 		$b     = self::brand();
 		$tones = array(
 			'formal'   => 'formal and respectful',
@@ -324,10 +324,10 @@ class SSAI_Studio {
 	}
 
 	public static function has_marks( $text ) {
-		return false !== strpos( (string) $text, 'ssai-review' ) || false !== strpos( (string) $text, 'ssai-image-hint' ) || (bool) preg_match( '/\[\[\s*REVIEW/i', (string) $text );
+		return false !== strpos( (string) $text, 'ssai-review' ) || false !== strpos( (string) $text, 'ssai-image-hint' ) || false !== strpos( (string) $text, '[نیاز به بررسی' ) || false !== strpos( (string) $text, substr( wp_json_encode( '[نیاز به بررسی' ), 1, -1 ) ) || (bool) preg_match( '/\[\[\s*REVIEW/i', (string) $text );
 	}
 
-	private static function clean_html( $html ) {
+	public static function clean_html( $html ) {
 		$html = wp_kses_post( (string) $html );
 		$html = preg_replace( '/<h1(\b[^>]*)>(.*?)<\/h1>/is', '<h2$1>$2</h2>', $html );
 		$html = preg_replace( '/<a\b[^>]*>(.*?)<\/a>/is', '$1', $html ); // No links from the AI.
@@ -465,7 +465,7 @@ class SSAI_Studio {
 
 	/* ================================================================ Elementor */
 
-	private static function el_id() {
+	public static function el_id() {
 		return substr( md5( uniqid( '', true ) . wp_rand() ), 0, 7 );
 	}
 
@@ -643,14 +643,14 @@ class SSAI_Studio {
 
 	/* ================================================================ AJAX */
 
-	private static function guard( $cap = self::CAP ) {
+	public static function guard( $cap = self::CAP ) {
 		check_ajax_referer( 'ssai', 'nonce' );
 		if ( ! current_user_can( $cap ) ) {
 			wp_send_json_error( array( 'message' => 'دسترسی ندارید.' ), 403 );
 		}
 	}
 
-	private static function lock() {
+	public static function lock() {
 		$k = 'ssai_cs_lock_' . get_current_user_id();
 		if ( get_transient( $k ) ) {
 			wp_send_json_error( array( 'message' => 'درخواست قبلی هوش مصنوعی هنوز در حال انجام است؛ چند ثانیه صبر کنید.' ), 429 );
@@ -665,7 +665,7 @@ class SSAI_Studio {
 		SSAI_AI_Client::$min_timeout = 150;
 	}
 
-	private static function req_item() {
+	public static function req_item() {
 		$id = isset( $_POST['item'] ) ? absint( $_POST['item'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification
 		$m  = $id ? self::item( $id ) : null;
 		if ( ! $m ) {
@@ -674,7 +674,7 @@ class SSAI_Studio {
 		return $m;
 	}
 
-	private static function txt( $k, $multi = false ) {
+	public static function txt( $k, $multi = false ) {
 		// phpcs:ignore WordPress.Security.NonceVerification
 		$v = isset( $_POST[ $k ] ) ? wp_unslash( $_POST[ $k ] ) : '';
 		return $multi ? sanitize_textarea_field( (string) $v ) : sanitize_text_field( (string) $v );
@@ -894,7 +894,7 @@ class SSAI_Studio {
 				'keyword' => SSAI_Content::get_focus_keyword( $p->ID ),
 				'why'     => implode( '، ', $reasons ),
 				'score'   => $score,
-				'elementor' => class_exists( 'SSAI_Elementor' ) && SSAI_Elementor::is_built( $p->ID ),
+				'elementor' => ( class_exists( 'SSAI_Elementor' ) && SSAI_Elementor::is_built( $p->ID ) ) || SSAI_Avada::is_built( $p->ID ),
 			);
 		}
 		usort(
@@ -1190,8 +1190,8 @@ class SSAI_Studio {
 			if ( ! SSAI_Applier::can( $m['target'] ) ) {
 				wp_send_json_error( array( 'message' => 'اجازه تغییر این صفحه را ندارید.' ), 403 );
 			}
-			if ( class_exists( 'SSAI_Elementor' ) && SSAI_Elementor::is_built( $m['target'] ) ) {
-				wp_send_json_error( array( 'message' => 'این صفحه با المنتور ساخته شده؛ برای به‌روزرسانی آن از «گزارش سئو › بازنویسی محتوا» استفاده کنید، یا خروجی را به‌صورت پیش‌نویس جدید بگیرید (منبع را «موضوع خودم» کنید).' ) );
+			if ( SSAI_Avada::is_built( $m['target'] ) || ( class_exists( 'SSAI_Elementor' ) && SSAI_Elementor::is_built( $m['target'] ) ) ) {
+				wp_send_json_error( array( 'message' => 'این صفحه با صفحه‌ساز (المنتور یا آوادا) ساخته شده؛ برای به‌روزرسانی آن از «گزارش سئو › بازنویسی محتوا» استفاده کنید، یا خروجی را به‌صورت پیش‌نویس جدید بگیرید (منبع را «موضوع خودم» کنید).' ) );
 			}
 			$r = SSAI_Applier::apply( $m['target'], 'content', self::blocks( $m ) );
 			if ( is_wp_error( $r ) ) {
@@ -1611,11 +1611,30 @@ class SSAI_Studio {
 			'ideas'    => 'ایده‌ها',
 			'write'    => 'تولید',
 			'short'    => 'دسته‌ها و محصولات',
+			'design'   => 'طراحی صفحه',
 			'calendar' => 'تقویم',
 			'brand'    => 'پروفایل برند',
 		);
 		$tab  = isset( $tabs[ $tab ] ) ? $tab : 'ideas';
 		wp_enqueue_script( 'ssai-studio', SSAI_URL . 'assets/studio.js', array( 'ssai-admin' ), SSAI_VERSION, true );
+		if ( 'design' === $tab ) {
+			wp_enqueue_script( 'ssai-designer', SSAI_URL . 'assets/designer.js', array( 'ssai-studio' ), SSAI_VERSION, true );
+			$lib = array();
+			foreach ( SSAI_Designer::blocks() as $k => $b ) {
+				$lib[ $k ] = array( 'label' => $b[0], 'fields' => $b[2] );
+			}
+			wp_localize_script(
+				'ssai-designer',
+				'SSAI_DS',
+				array(
+					'kinds'    => SSAI_Designer::kinds(),
+					'blocks'   => $lib,
+					'builders' => SSAI_Designer::builders(),
+					'icons'    => SSAI_Designer::icons(),
+					'pro'      => defined( 'ELEMENTOR_PRO_VERSION' ),
+				)
+			);
+		}
 		$cats = array();
 		foreach ( get_categories( array( 'hide_empty' => false ) ) as $c ) {
 			$cats[ $c->term_id ] = $c->name;
@@ -1739,6 +1758,41 @@ class SSAI_Studio {
 			</p>
 			<div id="ssai-cs-shorts"><p>در حال بارگذاری…</p></div>
 		</section>
+		<?php
+	}
+
+	private static function tab_design() {
+		$item     = isset( $_GET['item'] ) ? absint( $_GET['item'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification
+		$builders = SSAI_Designer::builders();
+		$list     = array_filter(
+			self::items(),
+			function ( $m ) {
+				return 'design' === $m['type'];
+			}
+		);
+		if ( ! $builders ) {
+			echo '<div class="ssai-card"><p>برای طراحی صفحه، المنتور یا قالب آوادا (Avada Builder) باید روی سایت فعال باشد.</p></div>';
+			return;
+		}
+		$pages = get_posts( array( 'post_type' => 'page', 'post_status' => array( 'publish', 'draft' ), 'posts_per_page' => 200, 'orderby' => 'title', 'order' => 'ASC' ) );
+		?>
+		<div class="ssai-cs-write">
+			<aside class="ssai-card ssai-cs-queue">
+				<h2>طرح‌ها</h2>
+				<p><a class="button button-primary" href="<?php echo esc_url( self::url( 'design', array( 'item' => 'new' ) ) ); ?>">+ طرح جدید</a></p>
+				<ul>
+				<?php foreach ( $list as $m ) : ?>
+					<li class="<?php echo $m['id'] === $item ? 'is-current' : ''; ?>">
+						<a href="<?php echo esc_url( self::url( 'design', array( 'item' => $m['id'] ) ) ); ?>"><?php echo esc_html( '' !== $m['title'] ? $m['title'] : $m['topic'] ); ?></a>
+						<span class="ssai-cs-badge ssai-cs-st-<?php echo esc_attr( $m['status'] ); ?>"><?php echo esc_html( self::statuses()[ $m['status'] ] ); ?></span>
+					</li>
+				<?php endforeach; ?>
+				</ul>
+			</aside>
+			<div id="ssai-ds" data-item="<?php echo esc_attr( isset( $_GET['item'] ) && 'new' === $_GET['item'] ? 'new' : $item ); // phpcs:ignore WordPress.Security.NonceVerification ?>" data-pages="<?php echo esc_attr( wp_json_encode( array_map( function ( $p ) { return array( $p->ID, get_the_title( $p ) ); }, $pages ) ) ); ?>">
+				<div class="ssai-card"><p><?php echo $item || ( isset( $_GET['item'] ) && 'new' === $_GET['item'] ) ? 'در حال بارگذاری…' : 'یک طرح را انتخاب کنید یا «+ طرح جدید» را بزنید.'; // phpcs:ignore WordPress.Security.NonceVerification ?></p></div>
+			</div>
+		</div>
 		<?php
 	}
 

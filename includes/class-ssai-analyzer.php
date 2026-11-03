@@ -950,7 +950,7 @@ class SSAI_Analyzer {
 		if ( ! $d ) {
 			return new WP_Error( 'ssai_no_post', 'نوشته پیدا نشد.' );
 		}
-		if ( 'elementor' === $d['builder'] ) {
+		if ( 'elementor' === $d['builder'] || 'avada' === $d['builder'] ) {
 			$cands = self::link_candidates( $post_id, $link_ideas );
 			if ( is_wp_error( $cands ) ) {
 				return $cands;
@@ -1049,9 +1049,10 @@ class SSAI_Analyzer {
 	 */
 	private static function ai_rewrite_elementor( $post_id, $d, $instructions, $cands = array() ) {
 		SSAI_AI_Client::$min_timeout = 180;
-		$items = SSAI_Elementor::text_items( $post_id );
+		$avada = 'avada' === $d['builder'];
+		$items = $avada ? SSAI_Avada::text_items( $post_id ) : SSAI_Elementor::text_items( $post_id );
 		if ( empty( $items ) ) {
-			return new WP_Error( 'ssai_no_widgets', 'ویجت متنی قابل بازنویسی (تیتر، ویرایشگر متن، آیکون‌باکس…) در این صفحه المنتور پیدا نشد.' );
+			return new WP_Error( 'ssai_no_widgets', $avada ? 'المان Title یا Text قابل بازنویسی در این صفحه آوادا پیدا نشد.' : 'ویجت متنی قابل بازنویسی (تیتر، ویرایشگر متن، آیکون‌باکس…) در این صفحه المنتور پیدا نشد.' );
 		}
 		$max   = (int) SSAI_Settings::get( 'max_chars' );
 		$total = 0;
@@ -1069,7 +1070,7 @@ class SSAI_Analyzer {
 		}
 
 		$lang   = self::lang_name( $post_id );
-		$system = 'You are an expert SEO copy editor improving the text widgets of an Elementor landing page. Each item is one widget. '
+		$system = 'You are an expert SEO copy editor improving the text widgets of a page-builder (' . ( $avada ? 'Avada' : 'Elementor' ) . ') landing page. Each item is one widget. '
 			. 'Improve wording for SEO and readability, keep meaning, facts, tone and language; do not invent facts, prices or claims. '
 			. 'Use the focus keyword naturally (in the first text block and one heading), without stuffing. '
 			. 'Headings stay short single-line plain text. Text items may contain HTML: keep all <a>, <img> tags and shortcodes exactly; you may use <p>, <strong>, <ul>, <li>; never use <h1>. '

@@ -82,7 +82,7 @@
 					});
 					var cells = src === 'gsc'
 						? [h('td', {}, [h('strong', { text: it.query })]), h('td', { text: it.impressions.toLocaleString('fa-IR') }), h('td', { text: it.position.toLocaleString('fa-IR') }), h('td', { class: 'description', text: it.why + (it.page ? ' («' + it.page + '»)' : '') })]
-						: [h('td', {}, [h('strong', { text: it.title })]), h('td', { class: 'description', text: it.why + (it.elementor ? ' — صفحه المنتوری: خروجی به‌صورت پیش‌نویس جدید پیشنهاد می‌شود' : '') })];
+						: [h('td', {}, [h('strong', { text: it.title })]), h('td', { class: 'description', text: it.why + (it.elementor ? ' — صفحه‌ساز (المنتور یا آوادا): برای بازنویسی از «گزارش سئو › بازنویسی محتوا» استفاده کنید' : '') })];
 					cells.push(h('td', {}, [btn]));
 					tb.appendChild(h('tr', {}, cells));
 				});
