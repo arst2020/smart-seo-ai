@@ -129,12 +129,13 @@
 		f.secondary = h('input', { type: 'text', class: 'regular-text', value: item.secondary, placeholder: 'با ویرگول جدا کنید' });
 		f.audience = h('input', { type: 'text', class: 'regular-text', value: item.audience, placeholder: 'خالی = از پروفایل برند' });
 		f.length = options(h('select'), { short: 'کوتاه (~۸۰۰ کلمه)', medium: 'متوسط (~۱۵۰۰ کلمه)', long: 'بلند (~۲۵۰۰ کلمه)' }, item.length);
+		f.images = h('input', { type: 'number', min: 0, max: 15, value: item.images === undefined ? 3 : item.images, style: 'width:90px' });
 		f.notes = h('textarea', { rows: 3, placeholder: 'هر چیزی که نویسنده باید بداند: نکات تخصصی، اطلاعات واقعی (قیمت، مدت، نام پزشک)، چیزهایی که نباید گفته شود…' });
 		f.notes.value = item.notes || '';
 		f.date = h('input', { type: 'datetime-local', value: item.date ? item.date.replace(' ', 'T') : '' });
 		var brief = [
 			field('نوع', f.type), field('موضوع', f.topic), field('کلمه کلیدی اصلی', f.keyword), field('کلمات فرعی', f.secondary),
-			field('مخاطب', f.audience), field('طول', f.length)
+			field('مخاطب', f.audience), field('طول', f.length), field('تعداد تصویر داخل متن', f.images, '۰ = بدون تصویر')
 		];
 		if (!isRefresh) {
 			f.post_type = options(h('select'), C.postTypes, item.type === 'service' && item.post_type === 'post' ? 'page' : item.post_type);
@@ -190,6 +191,16 @@
 		titleSel.addEventListener('change', function () { titleIn.value = titleSel.value; });
 		var rows = h('div', { class: 'ssai-cs-outline' });
 		item.outline.forEach(function (o, i) { rows.appendChild(outlineRow(o, i)); });
+		var imgCount = h('p', { class: 'description' });
+		var countImgs = function () {
+			var n = 0;
+			rows.querySelectorAll('.ssai-cs-row').forEach(function (r) { if (r.querySelector('.ssai-cs-img-desc').value.trim() || r.querySelector('.ssai-cs-img-id').value) n++; });
+			var want = parseInt(f.images.value, 10) || 0;
+			imgCount.textContent = 'تصویرها: ' + n + ' از ' + want + (n > want ? ' — بیشتر از تعداد انتخابی شماست؛ تصویر اضافه را حذف کنید.' : '');
+			imgCount.className = n > want ? 'ssai-warn' : 'description';
+		};
+		rows.addEventListener('input', countImgs); rows.addEventListener('click', function () { setTimeout(countImgs, 0); });
+		f.images.addEventListener('input', countImgs);
 		var add = h('button', { type: 'button', class: 'button button-small', text: '+ افزودن بخش' });
 		add.addEventListener('click', function () { rows.appendChild(outlineRow({ level: 2, heading: '', notes: '', image: null }, -1)); });
 
@@ -236,11 +247,12 @@
 			}).then(function () { msg('همه بخش‌ها نوشته شد. پیش‌نمایش را بخوانید و علامت‌های زرد را بررسی کنید.', 'success'); render(); })
 				.catch(function (er) { msg(er.message + ' — بخش‌های نوشته‌شده ذخیره شده‌اند؛ دوباره بزنید تا ادامه دهد.', 'error'); request('item_get', { item: item.id }).then(function (d) { item = d.item; render(); }); });
 		});
+		setTimeout(countImgs, 0);
 		root.appendChild(h('section', { class: 'ssai-card' }, [
 			h('h2', { text: '۲. سرفصل' }),
 			field('عنوان صفحه (H1)', titleIn), item.titles && item.titles.length > 1 ? field('عنوان‌های پیشنهادی', titleSel) : null,
 			h('p', { class: 'description', text: 'تیترها را ویرایش، جابه‌جا یا حذف کنید. «یادداشت» می‌گوید آن بخش چه چیزی را پوشش دهد. اگر برای بخشی تصویر می‌خواهید، توضیح تصویر را بنویسید. متن بخش‌هایی که تیترشان عوض نشود حفظ می‌شود.' }),
-			rows, h('p', {}, [add]),
+			imgCount, rows, h('p', {}, [add]),
 			h('h3', { text: 'سئو' }),
 			h('div', { class: 'ssai-cs-grid' }, [
 				h('label', { class: 'ssai-cs-field ssai-cs-wide' }, [h('span', { text: 'عنوان سئو' }), sTitle, counter(sTitle, 30, 60)]),

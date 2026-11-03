@@ -116,6 +116,7 @@ class SSAI_Studio {
 			'secondary' => '',
 			'audience'  => '',
 			'length'    => 'medium',
+			'images'    => 3,       // Number of images inside the text (chosen by the user).
 			'lang'      => '',
 			'post_type' => 'post',
 			'category'  => 0,
@@ -919,6 +920,9 @@ class SSAI_Studio {
 				$m[ $k ] = self::txt( $k, 'notes' === $k );
 			}
 		}
+		if ( isset( $_POST['images'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
+			$m['images'] = min( 15, absint( $_POST['images'] ) ); // phpcs:ignore WordPress.Security.NonceVerification
+		}
 		foreach ( array( 'category', 'template', 'target' ) as $k ) {
 			if ( isset( $_POST[ $k ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
 				$m[ $k ] = absint( $_POST[ $k ] ); // phpcs:ignore WordPress.Security.NonceVerification
@@ -1059,7 +1063,8 @@ class SSAI_Studio {
 		$user .= 'Return JSON {"titles":["3 different page titles (H1), each ≤ 65 characters, keyword near the start"],'
 			. '"outline":[{"level":0,"heading":"Introduction","notes":"what the intro must say"},{"level":2,"heading":"H2 text","notes":"2-4 points this section must cover","image":{"desc":"what photo/illustration fits here (or omit image)","alt":"alt text"}},{"level":3,"heading":"optional H3 under the previous H2","notes":"..."}],'
 			. '"seo":{"seo_title":"≤ 60 characters","meta_description":"120-155 characters with the keyword and a reason to click","slug":"short-slug","keywords":["focus keyword first","2-4 secondary keywords people really search"]}}. '
-			. 'First outline item is the introduction (level 0). 5-9 H2 sections, H3 only when useful, a final section with a natural call to action. Suggest an image for at most 3-4 sections. Headings must be specific (not generic like "Introduction" or "Conclusion").';
+			. 'First outline item is the introduction (level 0). 5-9 H2 sections, H3 only when useful, a final section with a natural call to action. '
+			. ( (int) $m['images'] > 0 ? 'Add "image" to EXACTLY ' . (int) $m['images'] . ' sections (the most visual ones, not the introduction); all other sections have no "image" key.' : 'Do not add "image" to any section.' ) . ' Headings must be specific (not generic like "Introduction" or "Conclusion").';
 		$r = SSAI_AI_Client::chat_json( self::system( $m ), $user );
 		if ( is_wp_error( $r ) ) {
 			wp_send_json_error( array( 'message' => $r->get_error_message() ) );
@@ -1070,6 +1075,17 @@ class SSAI_Studio {
 		}
 		if ( 0 !== $outline[0]['level'] ) {
 			array_unshift( $outline, array( 'level' => 0, 'heading' => 'مقدمه', 'notes' => '', 'image' => null ) );
+		}
+		// Never more images than the editor asked for (models do not always obey).
+		$left = (int) $m['images'];
+		foreach ( $outline as $i => $o ) {
+			if ( ! empty( $o['image'] ) ) {
+				if ( $left > 0 && 0 !== (int) $o['level'] ) {
+					$left--;
+				} else {
+					$outline[ $i ]['image'] = null;
+				}
+			}
 		}
 		$titles = array();
 		foreach ( isset( $r['titles'] ) && is_array( $r['titles'] ) ? $r['titles'] : array() as $t ) {
