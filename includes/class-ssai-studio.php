@@ -331,6 +331,11 @@ class SSAI_Studio {
 		$html = wp_kses_post( (string) $html );
 		$html = preg_replace( '/<h1(\b[^>]*)>(.*?)<\/h1>/is', '<h2$1>$2</h2>', $html );
 		$html = preg_replace( '/<a\b[^>]*>(.*?)<\/a>/is', '$1', $html ); // No links from the AI.
+		// Images are only the ones the editor planned in the outline: drop images, figures, media and image placeholders the model adds.
+		$html = preg_replace( '/<figure\b[^>]*>.*?<\/figure>|<(picture|video|audio|iframe)\b[^>]*>.*?<\/\1>|<(img|source|embed)\b[^>]*\/?>/is', '', $html );
+		$html = preg_replace( '/<(p|div)\b[^>]*>\s*(?:\[\[\s*(?:REVIEW|بررسی|CHECK)[^\]]*\]\]\s*)?(?:🖼|📷)?\s*(?:تصویر|عکس|اینفوگرافیک|نمودار|image|photo|picture|infographic)\s*(?:پیشنهادی|:|：|-)[^<]{0,300}<\/\1>/iu', '', $html );
+		$html = preg_replace( '/\[\[\s*(?:REVIEW|بررسی|CHECK)\s*:?[^\]]*(?:تصویر|عکس|اینفوگرافیک|image|photo|picture|infographic)[^\]]*\]\]/iu', '', $html );
+		$html = preg_replace( '/<(p|li)\b[^>]*>\s*<\/\1>/i', '', $html );
 		return trim( self::marks( $html ) );
 	}
 
@@ -369,7 +374,7 @@ class SSAI_Studio {
 			if ( ! empty( $o['image'] ) ) {
 				$out .= self::image_hint( $o['image'] ) . "\n";
 			}
-			$out .= isset( $m['sections'][ $i ] ) ? $m['sections'][ $i ] . "\n" : '<p><mark class="ssai-review">[نیاز به بررسی: این بخش هنوز نوشته نشده]</mark></p>' . "\n";
+			$out .= isset( $m['sections'][ $i ] ) ? self::clean_html( $m['sections'][ $i ] ) . "\n" : '<p><mark class="ssai-review">[نیاز به بررسی: این بخش هنوز نوشته نشده]</mark></p>' . "\n";
 		}
 		return $out;
 	}
@@ -390,7 +395,7 @@ class SSAI_Studio {
 					$out .= "<!-- wp:paragraph {\"className\":\"ssai-image-hint\"} -->\n" . self::image_hint( $o['image'] ) . "\n<!-- /wp:paragraph -->\n\n";
 				}
 			}
-			$out .= self::html_to_blocks( isset( $m['sections'][ $i ] ) ? $m['sections'][ $i ] : '' );
+			$out .= self::html_to_blocks( isset( $m['sections'][ $i ] ) ? self::clean_html( $m['sections'][ $i ] ) : '' ); // Re-cleaned: also fixes text written by older versions.
 		}
 		return $out;
 	}
@@ -526,7 +531,7 @@ class SSAI_Studio {
 			if ( (int) $o['level'] > 0 && '' !== trim( $o['heading'] ) ) {
 				$pieces[] = array( 'heading', $o['heading'], (int) $o['level'] );
 			}
-			$body = ( ! empty( $o['image'] ) ? self::image_hint( $o['image'] ) : '' ) . ( isset( $m['sections'][ $i ] ) ? $m['sections'][ $i ] : '' );
+			$body = ( ! empty( $o['image'] ) ? self::image_hint( $o['image'] ) : '' ) . ( isset( $m['sections'][ $i ] ) ? self::clean_html( $m['sections'][ $i ] ) : '' );
 			$pieces[] = array( 'text', $body, 0 );
 		}
 		$used  = 0;
@@ -1149,7 +1154,7 @@ class SSAI_Studio {
 		}
 		$user = "Write ONLY the body of the marked section (do not repeat its heading, do not write other sections).\n"
 			. 'Use <p>, and where it really helps <ul>/<ol>, <strong>, a small <table> or <h3>. Short paragraphs (2-4 sentences). The introduction must hook the reader and use the focus keyword in its first sentence or two. '
-			. 'Use [[REVIEW: …]] for any fact you cannot be sure of.' . "\n"
+			. 'Do NOT add images, figures, image placeholders or notes like "image: …" – images are placed separately. Use [[REVIEW: …]] for any fact you cannot be sure of.' . "\n"
 			. 'Return JSON {"html":"..."} for: ' . wp_json_encode( $job, JSON_UNESCAPED_UNICODE );
 		$r = SSAI_AI_Client::chat_json( self::system( $m ), $user );
 		if ( is_wp_error( $r ) ) {
