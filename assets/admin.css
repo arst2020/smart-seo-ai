@@ -346,3 +346,6 @@
 .ssai-cs-flash { animation: ssaiFlash 1.2s; }
 @keyframes ssaiFlash { from { background: #fcf0c3; } to { background: #fff; } }
 .ssai-cs-preview figure img { max-width: 100%; height: auto; max-height: 280px; }
+.ssai-cs-addimg { margin-top: 6px; font-size: 12px; }
+.ssai-cs-addimg:disabled { color: #a7aaad; cursor: not-allowed; }
+.ssai-cs-img[hidden] { display: none; }

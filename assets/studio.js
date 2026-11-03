@@ -194,8 +194,9 @@
 		var imgCount = h('p', { class: 'description' });
 		var countImgs = function () {
 			var n = 0;
-			rows.querySelectorAll('.ssai-cs-row').forEach(function (r) { if (r.querySelector('.ssai-cs-img-desc').value.trim() || r.querySelector('.ssai-cs-img-id').value) n++; });
+			rows.querySelectorAll('.ssai-cs-row').forEach(function (r) { if (!r.querySelector('.ssai-cs-img').hidden) n++; });
 			var want = parseInt(f.images.value, 10) || 0;
+			rows.querySelectorAll('.ssai-cs-addimg').forEach(function (b) { b.disabled = n >= want; b.title = n >= want ? 'به تعداد تصویر انتخابی رسیده‌اید؛ عدد «تعداد تصویر» را بیشتر کنید یا جای تصویر دیگری را حذف کنید.' : ''; });
 			imgCount.textContent = 'تصویرها: ' + n + ' از ' + want + (n > want ? ' — بیشتر از تعداد انتخابی شماست؛ تصویر اضافه را حذف کنید.' : '');
 			imgCount.className = n > want ? 'ssai-warn' : 'description';
 		};
@@ -251,7 +252,7 @@
 		root.appendChild(h('section', { class: 'ssai-card' }, [
 			h('h2', { text: '۲. سرفصل' }),
 			field('عنوان صفحه (H1)', titleIn), item.titles && item.titles.length > 1 ? field('عنوان‌های پیشنهادی', titleSel) : null,
-			h('p', { class: 'description', text: 'تیترها را ویرایش، جابه‌جا یا حذف کنید. «یادداشت» می‌گوید آن بخش چه چیزی را پوشش دهد. اگر برای بخشی تصویر می‌خواهید، توضیح تصویر را بنویسید. متن بخش‌هایی که تیترشان عوض نشود حفظ می‌شود.' }),
+			h('p', { class: 'description', text: 'تیترها را ویرایش، جابه‌جا یا حذف کنید. «یادداشت» می‌گوید آن بخش چه چیزی را پوشش دهد. فقط بخش‌هایی که جای تصویر دارند (به تعداد انتخابی شما) کادر تصویر دارند؛ برای آن‌ها از گالری عکس انتخاب کنید. بخش‌های دیگر با «+ تصویر برای این بخش» تصویر می‌گیرند. متن بخش‌هایی که تیترشان عوض نشود حفظ می‌شود.' }),
 			imgCount, rows, h('p', {}, [add]),
 			h('h3', { text: 'سئو' }),
 			h('div', { class: 'ssai-cs-grid' }, [
@@ -336,6 +337,15 @@
 			});
 			frame.open();
 		});
+		var slotX = h('button', { type: 'button', class: 'button-link ssai-cs-del', text: 'حذف جای تصویر', title: 'این بخش تصویر نداشته باشد' });
+		var hasImg = !!(im.id || im.desc);
+		var imgBox = h('div', { class: 'ssai-cs-img', hidden: !hasImg }, [imgId, thumb, pick, drop, imgD, imgA, altAi, slotX]);
+		var addImg = h('button', { type: 'button', class: 'button-link ssai-cs-addimg', text: '+ تصویر برای این بخش', hidden: hasImg });
+		addImg.addEventListener('click', function () { imgBox.hidden = false; addImg.hidden = true; imgD.focus(); });
+		slotX.addEventListener('click', function () {
+			imgId.value = ''; imgD.value = ''; imgA.value = ''; thumb.hidden = true; thumb.removeAttribute('src');
+			drop.hidden = true; pick.textContent = '🖼 انتخاب از گالری'; imgBox.hidden = true; addImg.hidden = false;
+		});
 		drop.addEventListener('click', function () { imgId.value = ''; thumb.hidden = true; thumb.removeAttribute('src'); drop.hidden = true; pick.textContent = '🖼 انتخاب از گالری'; });
 		altAi.addEventListener('click', function () {
 			busy(altAi, true, '…');
@@ -349,7 +359,7 @@
 		var rm = h('button', { type: 'button', class: 'button-link ssai-cs-del', title: 'حذف', text: '✕' });
 		var row = h('div', { class: 'ssai-cs-row lvl-' + o.level, 'data-from': i }, [
 			h('div', { class: 'ssai-cs-row-top' }, [lvl, head, h('span', { class: done ? 'ssai-ok' : 'description', text: done ? '✓ نوشته شده' : '' }), up, down, rm]),
-			notes, h('div', { class: 'ssai-cs-img' }, [imgId, thumb, pick, drop, imgD, imgA, altAi])
+			notes, imgBox, addImg
 		]);
 		if (done && i >= 0) {
 			var redo = h('button', { type: 'button', class: 'button button-small', text: 'بازنویسی این بخش' });
