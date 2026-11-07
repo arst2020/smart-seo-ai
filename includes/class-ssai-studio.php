@@ -121,6 +121,7 @@ class SSAI_Studio {
 			'post_type' => 'post',
 			'category'  => 0,
 			'output'    => 'gutenberg',
+			'mode'      => 'page',    // page = WordPress draft; section = HTML block to copy into an existing page.
 			'template'  => 0,
 			'target'    => 0,     // Refresh: post id. Category: term id.
 			'tax'       => '',
@@ -272,7 +273,7 @@ class SSAI_Studio {
 	}
 
 	private static function words_target( $m ) {
-		$map = array( 'short' => 800, 'medium' => 1500, 'long' => 2500 );
+		$map = 'section' === $m['mode'] ? array( 'short' => 350, 'medium' => 650, 'long' => 1000 ) : array( 'short' => 800, 'medium' => 1500, 'long' => 2500 );
 		return isset( $map[ $m['length'] ] ) ? $map[ $m['length'] ] : 1500;
 	}
 
@@ -377,6 +378,24 @@ class SSAI_Studio {
 			$out .= isset( $m['sections'][ $i ] ) ? self::clean_html( $m['sections'][ $i ] ) . "\n" : '<p><mark class="ssai-review">[نیاز به بررسی: این بخش هنوز نوشته نشده]</mark></p>' . "\n";
 		}
 		return $out;
+	}
+
+	/**
+	 * Self-contained HTML section to paste into an existing page (Elementor text/HTML widget, Avada Text,
+	 * Gutenberg "Custom HTML", classic editor): title as H2, parts one level lower, real images only.
+	 */
+	public static function section_html( $m ) {
+		$body = self::html( $m );
+		$body = preg_replace_callback(
+			'/<(\/?)h([2-5])(\b[^>]*)>/i',
+			function ( $x ) {
+				return '<' . $x[1] . 'h' . ( (int) $x[2] + 1 ) . $x[3] . '>';
+			},
+			$body
+		);
+		$title = '' !== $m['title'] ? $m['title'] : $m['topic'];
+		$out   = '<section class="ssai-section">' . "\n" . '<h2>' . esc_html( $title ) . "</h2>\n" . trim( $body ) . "\n</section>";
+		return preg_replace( "/\n{2,}/", "\n", $out );
 	}
 
 	/** Same content as Gutenberg blocks. */
@@ -690,6 +709,7 @@ class SSAI_Studio {
 		$m['preview']   = $m['outline'] ? self::html( $m ) : '';
 		$m['marks']     = substr_count( $m['preview'], 'ssai-review' );
 		$m['written']   = count( $m['sections'] );
+		$m['section_html'] = 'section' === $m['mode'] && $m['outline'] ? self::section_html( $m ) : '';
 		$m['edit_url']  = $m['post_id'] ? get_edit_post_link( $m['post_id'], 'raw' ) : '';
 		$m['view_url']  = $m['post_id'] ? get_permalink( $m['post_id'] ) : '';
 		if ( $m['post_id'] && class_exists( 'SSAI_Elementor' ) && SSAI_Elementor::is_built( $m['post_id'] ) ) {
@@ -942,6 +962,9 @@ class SSAI_Studio {
 		if ( isset( $_POST['length'] ) && in_array( self::txt( 'length' ), array( 'short', 'medium', 'long' ), true ) ) { // phpcs:ignore WordPress.Security.NonceVerification
 			$m['length'] = self::txt( 'length' );
 		}
+		if ( isset( $_POST['mode'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
+			$m['mode'] = 'section' === self::txt( 'mode' ) ? 'section' : 'page';
+		}
 		if ( isset( $_POST['output'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
 			$m['output'] = 'elementor' === self::txt( 'output' ) ? 'elementor' : 'gutenberg';
 		}
@@ -1061,6 +1084,9 @@ class SSAI_Studio {
 			? 'a service landing page (what the service is, who it is for, benefits, how it works / steps, what affects the cost (no numbers), why choose this business, common questions, call to action)'
 			: 'a helpful blog article that fully answers the search intent';
 		$user  = 'Plan ' . $kind . ".\n";
+		if ( 'section' === $m['mode'] ) {
+			$user .= "IMPORTANT: this is NOT a full page. It is one SECTION that will be pasted into an existing page: the section title is an H2, inner parts are H3; keep it focused and compact (3-5 parts, short intro, no long conclusion).\n";
+		}
 		if ( $ex ) {
 			$user .= "This is an UPDATE of an existing page: keep what is still good, fix outdated parts, fill gaps, and improve structure. Existing page:\n" . wp_json_encode( $ex, JSON_UNESCAPED_UNICODE ) . "\n";
 		}
@@ -1152,7 +1178,8 @@ class SSAI_Studio {
 		if ( $ex ) {
 			$job['existing_page_text_for_reference'] = mb_substr( $ex['text'], 0, 4000 );
 		}
-		$user = "Write ONLY the body of the marked section (do not repeat its heading, do not write other sections).\n"
+		$user = ( 'section' === $m['mode'] ? "The whole piece is a SECTION inserted into an existing page, so be concise.\n" : '' )
+			. "Write ONLY the body of the marked section (do not repeat its heading, do not write other sections).\n"
 			. 'Use <p>, and where it really helps <ul>/<ol>, <strong>, a small <table> or <h3>. Short paragraphs (2-4 sentences). The introduction must hook the reader and use the focus keyword in its first sentence or two. '
 			. 'Do NOT add images, figures, image placeholders or notes like "image: …" – images are placed separately. Use [[REVIEW: …]] for any fact you cannot be sure of.' . "\n"
 			. 'Return JSON {"html":"..."} for: ' . wp_json_encode( $job, JSON_UNESCAPED_UNICODE );
@@ -1179,6 +1206,9 @@ class SSAI_Studio {
 	public static function ajax_save() {
 		self::guard();
 		$m = self::req_item();
+		if ( 'section' === $m['mode'] ) {
+			wp_send_json_error( array( 'message' => 'خروجی این مورد «سکشن HTML» است؛ کد را کپی کنید. برای ساخت پیش‌نویس، خروجی را «صفحه» کنید.' ) );
+		}
 		if ( ! in_array( $m['type'], array( 'article', 'service' ), true ) || ! $m['outline'] ) {
 			wp_send_json_error( array( 'message' => 'ابتدا سرفصل و متن را بسازید.' ) );
 		}
@@ -1402,7 +1432,7 @@ class SSAI_Studio {
 		$week = array();
 		$n    = 0;
 		foreach ( array_reverse( $items ) as $it ) { // Oldest first.
-			if ( '' !== $it['date'] || in_array( $it['status'], array( 'published', 'applied' ), true ) || ! in_array( $it['type'], array( 'article', 'service' ), true ) || $it['target'] ) {
+			if ( '' !== $it['date'] || 'section' === $it['mode'] || in_array( $it['status'], array( 'published', 'applied' ), true ) || ! in_array( $it['type'], array( 'article', 'service' ), true ) || $it['target'] ) {
 				continue;
 			}
 			for ( $guard = 0; $guard < 400; $guard++ ) {
@@ -1684,6 +1714,7 @@ class SSAI_Studio {
 				<label>موضوع یا عنوان <input type="text" name="topic" class="regular-text" required placeholder="مثلاً: لمینت دندان چیست"></label>
 				<label>کلمه کلیدی اصلی <input type="text" name="keyword" class="regular-text" placeholder="لمینت دندان"></label>
 				<label>نوع <select name="type"><option value="article">مقاله وبلاگ</option><option value="service">صفحه خدمات</option></select></label>
+				<label>خروجی <select name="mode"><option value="page">صفحه (پیش‌نویس وردپرس)</option><option value="section">سکشن HTML (فقط کپی کد)</option></select></label>
 				<button class="button button-primary">ساخت و رفتن به مرحله سرفصل</button>
 			</form>
 		</section>
@@ -1726,7 +1757,7 @@ class SSAI_Studio {
 					<li class="<?php echo $m['id'] === $item ? 'is-current' : ''; ?>">
 						<a href="<?php echo esc_url( self::url( 'write', array( 'item' => $m['id'] ) ) ); ?>"><?php echo esc_html( '' !== $m['title'] ? $m['title'] : $m['topic'] ); ?></a>
 						<span class="ssai-cs-badge ssai-cs-st-<?php echo esc_attr( $m['status'] ); ?>"><?php echo esc_html( $st[ $m['status'] ] ); ?></span>
-						<span class="description"><?php echo esc_html( $ty[ $m['type'] ] . ( $m['target'] ? ' (به‌روزرسانی)' : '' ) . ( '' !== $m['date'] ? ' — ' . $m['date'] : '' ) ); ?></span>
+						<span class="description"><?php echo esc_html( $ty[ $m['type'] ] . ( 'section' === $m['mode'] ? ' (سکشن HTML)' : '' ) . ( $m['target'] ? ' (به‌روزرسانی)' : '' ) . ( '' !== $m['date'] ? ' — ' . $m['date'] : '' ) ); ?></span>
 					</li>
 				<?php endforeach; ?>
 				</ul>

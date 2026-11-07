@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Smart SEO AI Assistant
  * Description:       ساخت NFPSMART — افزونه کامل سئو با هوش مصنوعی رایگان: عنوان و متا، Schema (کسب‌وکار، مقاله، محصول ووکامرس)، نقشه سایت، ریدایرکت و ۴۰۴، Breadcrumb، بررسی محتوا، AEO/GEO، سرچ کنسول و بک‌لینک؛ سازگار با المنتور و WPML/Polylang؛ جایگزین Rank Math با انتقال اطلاعات. همه تغییرات فقط با تأیید مدیر.
- * Version:           2.5.0
+ * Version:           2.5.1
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            ARST (NFPSMART)
@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'SSAI_VERSION', '2.5.0' );
+define( 'SSAI_VERSION', '2.5.1' );
 define( 'SSAI_FILE', __FILE__ );
 define( 'SSAI_DIR', plugin_dir_path( __FILE__ ) );
 define( 'SSAI_URL', plugin_dir_url( __FILE__ ) );

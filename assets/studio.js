@@ -60,7 +60,7 @@
 				e.preventDefault();
 				var b = form.querySelector('button');
 				busy(b, true, 'در حال ساخت…');
-				request('item_save', { topic: form.topic.value, keyword: form.keyword.value || form.topic.value, type: form.type.value, source: 'manual' })
+				request('item_save', { topic: form.topic.value, keyword: form.keyword.value || form.topic.value, type: form.type.value, mode: form.mode.value, length: form.mode.value === 'section' ? 'short' : 'medium', images: form.mode.value === 'section' ? 1 : 3, source: 'manual' })
 					.then(function (d) { goItem(d.item.id); })
 					.catch(function (er) { msg(er.message, 'error'); busy(b, false); });
 			});
@@ -133,7 +133,10 @@
 		f.notes = h('textarea', { rows: 3, placeholder: 'هر چیزی که نویسنده باید بداند: نکات تخصصی، اطلاعات واقعی (قیمت، مدت، نام پزشک)، چیزهایی که نباید گفته شود…' });
 		f.notes.value = item.notes || '';
 		f.date = h('input', { type: 'datetime-local', value: item.date ? item.date.replace(' ', 'T') : '' });
+		var isSection = item.mode === 'section';
+		if (!isRefresh) f.mode = options(h('select'), { page: 'صفحه (پیش‌نویس وردپرس)', section: 'سکشن HTML (فقط کپی کد)' }, item.mode || 'page');
 		var brief = [
+			!isRefresh ? field('خروجی', f.mode, 'سکشن: یک بخش آماده برای چسباندن داخل صفحه‌ای که دارید.') : null,
 			field('نوع', f.type), field('موضوع', f.topic), field('کلمه کلیدی اصلی', f.keyword), field('کلمات فرعی', f.secondary),
 			field('مخاطب', f.audience), field('طول', f.length), field('تعداد تصویر داخل متن', f.images, '۰ = بدون تصویر')
 		];
@@ -142,16 +145,25 @@
 			f.category = options(h('select'), Object.assign({ 0: '— پیش‌فرض —' }, C.cats), item.category);
 			f.output = options(h('select'), { gutenberg: 'پیش‌نویس گوتنبرگ (بلوک)', elementor: 'پیش‌نویس المنتور از روی صفحه نمونه' }, item.output);
 			f.template = options(h('select'), Object.assign({ 0: '— صفحه نمونه را انتخاب کنید —' }, C.templates), item.template);
-			brief.push(field('نوع نوشته', f.post_type), field('دسته', f.category), field('خروجی', f.output), field('صفحه نمونه المنتور', f.template, 'تیترها و متن‌ها به ترتیب در همین طراحی می‌نشینند.'));
+			var pageOnly = [field('نوع نوشته', f.post_type), field('دسته', f.category), field('قالب پیش‌نویس', f.output), field('صفحه نمونه المنتور', f.template, 'تیترها و متن‌ها به ترتیب در همین طراحی می‌نشینند.')];
+			pageOnly.forEach(function (el) { el.classList.add('ssai-cs-pageonly'); brief.push(el); });
 			if (!Object.keys(C.templates).length) { f.output.querySelector('[value=elementor]').disabled = true; }
 		}
 		if (C.langs && Object.keys(C.langs).length) {
 			f.lang = options(h('select'), Object.assign({ '': 'زبان پیش‌فرض سایت' }, C.langs), item.lang);
 			brief.push(field('زبان', f.lang));
 		}
-		brief.push(field('تاریخ برنامه‌ریزی (اختیاری)', f.date, 'فقط برنامه است؛ انتشار با تأیید شما در پایین.'));
+		var dateField = field('تاریخ برنامه‌ریزی (اختیاری)', f.date, 'فقط برنامه است؛ انتشار با تأیید شما در پایین.');
+		dateField.classList.add('ssai-cs-pageonly');
+		brief.push(dateField);
 		brief.push(h('label', { class: 'ssai-cs-field ssai-cs-wide' }, [h('span', { text: 'یادداشت برای نویسنده' }), f.notes]));
 
+		brief = brief.filter(Boolean);
+		var toggleMode = function () {
+			var sec = f.mode && f.mode.value === 'section';
+			brief.forEach(function (el) { if (el.classList && el.classList.contains('ssai-cs-pageonly')) el.hidden = sec; });
+		};
+		if (f.mode) { f.mode.addEventListener('change', toggleMode); setTimeout(toggleMode, 0); }
 		var briefData = function () {
 			var d = { item: item.id };
 			Object.keys(f).forEach(function (k) { d[k] = f[k].value; });
@@ -251,11 +263,11 @@
 		setTimeout(countImgs, 0);
 		root.appendChild(h('section', { class: 'ssai-card' }, [
 			h('h2', { text: '۲. سرفصل' }),
-			field('عنوان صفحه (H1)', titleIn), item.titles && item.titles.length > 1 ? field('عنوان‌های پیشنهادی', titleSel) : null,
+			field(isSection ? 'عنوان سکشن (H2)' : 'عنوان صفحه (H1)', titleIn), item.titles && item.titles.length > 1 ? field('عنوان‌های پیشنهادی', titleSel) : null,
 			h('p', { class: 'description', text: 'تیترها را ویرایش، جابه‌جا یا حذف کنید. «یادداشت» می‌گوید آن بخش چه چیزی را پوشش دهد. فقط بخش‌هایی که جای تصویر دارند (به تعداد انتخابی شما) کادر تصویر دارند؛ برای آن‌ها از گالری عکس انتخاب کنید. بخش‌های دیگر با «+ تصویر برای این بخش» تصویر می‌گیرند. متن بخش‌هایی که تیترشان عوض نشود حفظ می‌شود.' }),
 			imgCount, rows, h('p', {}, [add]),
-			h('h3', { text: 'سئو' }),
-			h('div', { class: 'ssai-cs-grid' }, [
+			isSection ? null : h('h3', { text: 'سئو' }),
+			isSection ? null : h('div', { class: 'ssai-cs-grid' }, [
 				h('label', { class: 'ssai-cs-field ssai-cs-wide' }, [h('span', { text: 'عنوان سئو' }), sTitle, counter(sTitle, 30, 60)]),
 				h('label', { class: 'ssai-cs-field ssai-cs-wide' }, [h('span', { text: 'توضیحات متا' }), sMeta, counter(sMeta, 120, 160)]),
 				field('نامک (URL)', sSlug), field('کلمات کلیدی (اولی = اصلی)', sKw)
@@ -270,9 +282,32 @@
 		prev.innerHTML = '<h1>' + escapeHtml(item.title) + '</h1>' + item.preview; // Built and sanitised on the server.
 		root.appendChild(h('section', { class: 'ssai-card' }, [
 			h('h2', { text: '۳. پیش‌نمایش' }),
-			item.marks ? h('p', { class: 'ssai-warn', text: item.marks + ' مورد «نیاز به بررسی» دارد؛ بعد از ساخت پیش‌نویس، در ویرایشگر با اطلاعات واقعی جایگزین یا حذف کنید.' }) : h('p', { class: 'ssai-ok', text: 'موردی برای بررسی علامت نخورده است؛ با این حال متن را کامل بخوانید.' }),
+			item.marks ? h('p', { class: 'ssai-warn', text: item.marks + ' مورد «نیاز به بررسی» دارد؛ ' + (isSection ? 'بعد از چسباندن کد' : 'بعد از ساخت پیش‌نویس') + '، در ویرایشگر با اطلاعات واقعی جایگزین یا حذف کنید.' }) : h('p', { class: 'ssai-ok', text: 'موردی برای بررسی علامت نخورده است؛ با این حال متن را کامل بخوانید.' }),
 			prev
 		]));
+
+		/* ---- Step 4 (section): copy the HTML */
+		if (isSection) {
+			if (written < item.outline.length) {
+				root.appendChild(h('section', { class: 'ssai-card' }, [h('h2', { text: '۴. کد HTML سکشن' }), h('p', { class: 'description', text: 'برای گرفتن کد، اول همه بخش‌ها را بنویسید.' })]));
+				return;
+			}
+			var code = h('textarea', { class: 'ssai-cs-code', rows: 14, readonly: true, dir: 'ltr' });
+			code.value = item.section_html;
+			var copyBtn = h('button', { type: 'button', class: 'button button-primary', text: '📋 کپی کد HTML' });
+			copyBtn.addEventListener('click', function () {
+				var ok = function () { copyBtn.textContent = '✓ کپی شد'; setTimeout(function () { copyBtn.textContent = '📋 کپی کد HTML'; }, 2000); };
+				if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(code.value).then(ok, function () { code.select(); document.execCommand('copy'); ok(); });
+				else { code.select(); document.execCommand('copy'); ok(); }
+			});
+			root.appendChild(h('section', { class: 'ssai-card' }, [
+				h('h2', { text: '۴. کد HTML سکشن' }),
+				item.marks ? h('p', { class: 'ssai-warn', text: 'کد ' + item.marks + ' علامت «نیاز به بررسی» و شاید کادر «تصویر پیشنهادی» دارد؛ بعد از چسباندن، آن‌ها را با اطلاعات واقعی جایگزین یا حذف کنید.' }) : null,
+				h('p', { class: 'description', text: 'این کد را در ویجت «HTML» یا «ویرایشگر متن» المنتور (حالت کد)، المان «Text» آوادا یا بلوک «HTML سفارشی» گوتنبرگ بچسبانید. عنوان سکشن H2 و زیربخش‌ها H3 هستند تا با H1 صفحه شما تداخل نداشته باشند.' }),
+				code, h('p', {}, [copyBtn])
+			]));
+			return;
+		}
 
 		/* ---- Step 4: save / schedule */
 		var actions = [];

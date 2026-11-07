@@ -389,3 +389,5 @@
 .ssai-ds-page summary h3 { display: inline; }
 .ssai-ds-page .ssai-ds-noimg { border: 2px dashed #c3c4c7; border-radius: 10px; padding: 30px; text-align: center; color: #8c8f94; }
 .ssai-ds-page .ssai-ds-lead { font-size: 17px; }
+.ssai-cs-code { width: 100%; font-family: Consolas, Monaco, monospace; font-size: 12px; direction: ltr; text-align: left; background: #f6f7f7; }
+.ssai-cs-field[hidden] { display: none; }
