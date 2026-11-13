@@ -225,7 +225,7 @@ class SSAI_Report {
 						<?php
 						$shown = 0;
 						foreach ( $r['items'] as $it ) {
-							if ( 'error' !== $it['status'] || $shown >= 6 ) {
+							if ( 'error' !== $it['status'] || $shown >= 6 || in_array( $it['id'], array( 'canonical', 'viewport' ), true ) ) {
 								continue;
 							}
 							$shown++;
@@ -233,6 +233,29 @@ class SSAI_Report {
 						}
 						?>
 					</ul>
+					<?php
+					// Technical head checks (canonical, mobile viewport) with their one-click fixes.
+					$tech = array_filter(
+						$r['items'],
+						function ( $it ) {
+							return in_array( $it['id'], array( 'canonical', 'viewport' ), true );
+						}
+					);
+					if ( $tech ) :
+						?>
+						<h3 class="ssai-tech-h">بررسی فنی صفحه</h3>
+						<ul class="ssai-list ssai-tech">
+						<?php foreach ( $tech as $it ) : ?>
+							<li class="ssai-<?php echo esc_attr( $it['status'] ); ?>"><span class="ssai-dot"></span><div class="ssai-li-body">
+								<div><?php echo esc_html( $it['message'] ); ?></div>
+								<?php if ( ! empty( $it['hint'] ) ) : ?><div class="ssai-hint"><?php echo esc_html( $it['hint'] ); ?></div><?php endif; ?>
+								<?php if ( ! empty( $it['action'] ) && SSAI_Applier::can( $post_id ) ) : ?>
+									<button type="button" class="ssai-fix-btn ssai-tech-fix" data-post="<?php echo esc_attr( $post_id ); ?>" data-kind="<?php echo esc_attr( $it['action']['kind'] ); ?>" data-confirm="<?php echo esc_attr( $it['action']['confirm'] ); ?>">🔧 <?php echo esc_html( $it['action']['label'] ); ?></button>
+								<?php endif; ?>
+							</div></li>
+						<?php endforeach; ?>
+						</ul>
+					<?php endif; ?>
 					<?php if ( is_array( $ai ) && ! empty( $ai['summary'] ) ) : ?>
 						<p class="ssai-ai-sum"><strong>خلاصه تحلیل هوش مصنوعی:</strong> <?php echo esc_html( $ai['summary'] ); ?></p>
 					<?php endif; ?>

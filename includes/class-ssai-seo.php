@@ -17,6 +17,7 @@ class SSAI_SEO {
 
 	const M_ROBOTS  = '_ssai_robots';      // array( 'noindex', 'nofollow' ).
 	const M_CANON   = '_ssai_canonical';
+	const M_FORCE_CANON = '_ssai_force_canonical'; // Page printed no canonical: this plugin prints a self-referencing one.
 	const M_OGTITLE = '_ssai_og_title';
 	const M_OGDESC  = '_ssai_og_desc';
 	const M_OGIMG   = '_ssai_og_image';
@@ -206,7 +207,11 @@ class SSAI_SEO {
 	}
 
 	public static function front_hooks() {
-		if ( is_admin() || is_feed() || is_robots() || ! self::on( 'head' ) ) {
+		if ( is_admin() || is_feed() || is_robots() ) {
+			return;
+		}
+		add_action( 'wp_head', array( __CLASS__, 'fallback_tags' ), 1 );
+		if ( ! self::on( 'head' ) ) {
 			return;
 		}
 		remove_action( 'wp_head', 'rel_canonical' );
@@ -771,6 +776,19 @@ class SSAI_SEO {
 			$robots['follow'] = true;
 		}
 		return $robots;
+	}
+
+	/**
+	 * Fixes chosen in the SEO check: a mobile viewport tag for themes without one (site-wide option) and a
+	 * self-referencing canonical on pages where nothing else prints one (when this plugin's head output is off).
+	 */
+	public static function fallback_tags() {
+		if ( get_option( 'ssai_viewport' ) ) {
+			echo '<meta name="viewport" content="width=device-width, initial-scale=1">' . "\n";
+		}
+		if ( is_singular() && ! self::on( 'head' ) && get_post_meta( get_queried_object_id(), self::M_FORCE_CANON, true ) && ! has_action( 'wp_head', 'rel_canonical' ) ) {
+			echo '<link rel="canonical" href="' . esc_url( get_permalink( get_queried_object_id() ) ) . '" />' . "\n";
+		}
 	}
 
 	public static function head() {

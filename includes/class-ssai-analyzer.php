@@ -48,7 +48,7 @@ class SSAI_Analyzer {
 		}
 		$key = 'ssai_live_' . $post_id;
 		$c   = get_transient( $key );
-		if ( is_array( $c ) && isset( $c['mod'] ) && $c['mod'] === $post->post_modified_gmt ) {
+		if ( is_array( $c ) && isset( $c['mod'] ) && $c['mod'] === $post->post_modified_gmt && ( ! $live || isset( $c['head'] ) ) ) {
 			return $c;
 		}
 		if ( $live && 'publish' === $post->post_status && empty( $post->post_password ) ) {
@@ -76,6 +76,7 @@ class SSAI_Analyzer {
 					'src'  => 'live',
 					'mod'  => $post->post_modified_gmt,
 					'main' => self::main_area( $html, $post ),
+					'head' => self::head_tags( $html ),
 				);
 				set_transient( $key, $c, DAY_IN_SECONDS );
 				return $c;
@@ -166,6 +167,97 @@ class SSAI_Analyzer {
 			'text'     => mb_substr( $text, 0, 60000 ),
 			'links'    => array_slice( array_keys( $int ), 0, 30 ),
 		);
+	}
+
+	/** Canonical links, viewport and robots meta tags of the published page. */
+	private static function head_tags( $html ) {
+		$out = array( 'canonical' => array(), 'viewport' => array(), 'noindex' => false );
+		if ( preg_match_all( '/<link\b[^>]*>/i', $html, $m ) ) {
+			foreach ( $m[0] as $tag ) {
+				if ( preg_match( '/\brel\s*=\s*["\']?[^"\'>]*\bcanonical\b/i', $tag ) && preg_match( '/\bhref\s*=\s*["\']([^"\']*)["\']/i', $tag, $h ) ) {
+					$out['canonical'][] = html_entity_decode( trim( $h[1] ), ENT_QUOTES, 'UTF-8' );
+				}
+			}
+		}
+		if ( preg_match_all( '/<meta\b[^>]*>/i', $html, $m ) ) {
+			foreach ( $m[0] as $tag ) {
+				if ( ! preg_match( '/\bname\s*=\s*["\']?([a-z-]+)/i', $tag, $n ) ) {
+					continue;
+				}
+				$content = preg_match( '/\bcontent\s*=\s*["\']([^"\']*)["\']/i', $tag, $c ) ? trim( $c[1] ) : '';
+				if ( 'viewport' === strtolower( $n[1] ) ) {
+					$out['viewport'][] = $content;
+				} elseif ( 'robots' === strtolower( $n[1] ) && false !== stripos( $content, 'noindex' ) ) {
+					$out['noindex'] = true;
+				}
+			}
+		}
+		return $out;
+	}
+
+	/** Same page? (ignores scheme, www and trailing slash; a query string makes it a different URL). */
+	private static function same_url( $a, $b ) {
+		$n = function ( $u ) {
+			$u = strtolower( preg_replace( '#^https?://(www\.)?#i', '', trim( (string) $u ) ) );
+			$u = preg_replace( '/#.*$/', '', $u );
+			return rawurldecode( untrailingslashit( $u ) );
+		};
+		return $n( $a ) === $n( $b );
+	}
+
+	/** Canonical and viewport checks, from the published page's <head>. */
+	private static function tech_items( $post_id, $ph ) {
+		$items = array();
+		if ( empty( $ph['head'] ) ) {
+			return $items;
+		}
+		$hd   = $ph['head'];
+		$self = get_permalink( $post_id );
+		$can  = array_values( array_unique( $hd['canonical'] ) );
+		$fix  = array(
+			'kind'    => 'canonical',
+			'label'   => 'افزودن canonical خودارجاع',
+			'confirm' => "آدرس canonical این صفحه روی خودش تنظیم می‌شود:\n" . rawurldecode( $self ) . "\n\nیعنی به گوگل گفته می‌شود نسخه اصلی همین آدرس است. تغییر در «تاریخچه تغییرات» ثبت می‌شود و قابل برگشت است. ادامه؟",
+		);
+		if ( ! $can ) {
+			$it           = self::item( 'canonical', $hd['noindex'] ? 'warning' : 'error', 'صفحه تگ canonical ندارد' . ( $hd['noindex'] ? ' (صفحه noindex است، پس الزامی نیست).' : '؛ گوگل خودش حدس می‌زند نسخه اصلی کدام آدرس است و ممکن است نسخه دارای پارامتر (مثلاً ?utm=) را انتخاب کند.' ), 'additional', '', 'معمولاً افزونه سئو canonical می‌گذارد؛ اگر نیست، قالب یا افزونه دیگری آن را حذف کرده است.' );
+			$it['action'] = $fix;
+			$items[]      = $it;
+		} elseif ( count( $can ) > 1 ) {
+			$items[] = self::item( 'canonical', 'error', sprintf( 'صفحه %d تگ canonical متفاوت دارد: %s — گوگل در این حالت ممکن است همه را نادیده بگیرد.', count( $can ), implode( ' ، ', $can ) ), 'additional', '', 'معمولاً دو افزونه سئو (مثلاً این افزونه و Rank Math/Yoast) یا قالب و افزونه با هم canonical چاپ می‌کنند؛ یکی را خاموش کنید.' );
+		} elseif ( ! self::same_url( $can[0], $self ) ) {
+			$it           = self::item( 'canonical', 'warning', 'canonical به آدرس دیگری اشاره می‌کند: ' . $can[0] . ' — یعنی به گوگل گفته‌اید نسخه اصلی آن صفحه است و این صفحه ایندکس نمی‌شود. اگر عمدی نیست، اصلاح کنید.', 'additional' );
+			$fix['label'] = 'تبدیل به canonical خودارجاع';
+			$it['action'] = $fix;
+			$items[]      = $it;
+		} elseif ( rawurldecode( untrailingslashit( $can[0] ) ) !== rawurldecode( untrailingslashit( $self ) ) ) {
+			$it           = self::item( 'canonical', 'warning', 'canonical همین صفحه است ولی دقیقاً با آدرس اصلی یکی نیست (http/https، www یا آدرس نسبی): ' . $can[0] . ' — بهتر است کامل و دقیقاً ' . $self . ' باشد.', 'additional' );
+			$fix['label'] = 'تبدیل به canonical خودارجاع';
+			$it['action'] = $fix;
+			$items[]      = $it;
+		} else {
+			$items[] = self::item( 'canonical', 'good', 'تگ canonical درست است و به خود صفحه اشاره می‌کند.', 'additional' );
+		}
+
+		$vp = $hd['viewport'];
+		if ( ! $vp ) {
+			$it           = self::item( 'viewport', 'error', 'تگ viewport موبایل ندارد؛ صفحه در موبایل کوچک و نامناسب نمایش داده می‌شود و گوگل (ایندکس موبایل‌اول) آن را برای موبایل مناسب نمی‌داند.', 'additional', '', 'این تگ را باید قالب بگذارد؛ اگر قالب ندارد، افزونه می‌تواند آن را برای همه صفحه‌ها اضافه کند.' );
+			$it['action'] = array(
+				'kind'    => 'viewport',
+				'label'   => 'افزودن تگ viewport به همه صفحه‌ها',
+				'confirm' => "تگ زیر از این به بعد در <head> همه صفحه‌های سایت اضافه می‌شود:\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n\nاین تنظیم سراسری است و در «تنظیمات سئو › عمومی» قابل خاموش کردن است. اگر قالب بعداً خودش این تگ را اضافه کرد، این گزینه را خاموش کنید. ادامه؟",
+			);
+			$items[]      = $it;
+		} elseif ( count( $vp ) > 1 ) {
+			$items[] = self::item( 'viewport', 'warning', sprintf( 'صفحه %d تگ viewport دارد (%s)؛ فقط یکی لازم است.', count( $vp ), implode( ' | ', $vp ) ), 'additional', '', get_option( 'ssai_viewport' ) ? 'قالب خودش viewport دارد؛ گزینه «افزودن تگ viewport» را در تنظیمات سئو › عمومی خاموش کنید.' : 'قالب یا یک افزونه تگ تکراری اضافه کرده است.' );
+		} elseif ( false === stripos( $vp[0], 'width=device-width' ) ) {
+			$items[] = self::item( 'viewport', 'error', 'تگ viewport هست ولی width=device-width ندارد («' . $vp[0] . '»)؛ صفحه در موبایل درست تنظیم نمی‌شود.', 'additional', '', 'در header.php قالب (یا تنظیمات قالب) مقدار را width=device-width, initial-scale=1 کنید.' );
+		} elseif ( preg_match( '/user-scalable\s*=\s*(no|0)|maximum-scale\s*=\s*1(\.0)?(\D|$)/i', $vp[0] ) ) {
+			$items[] = self::item( 'viewport', 'warning', 'تگ viewport زوم کاربر را بسته است («' . $vp[0] . '»)؛ برای کم‌بینایان مشکل‌ساز است و در گزارش دسترس‌پذیری گوگل ایراد حساب می‌شود.', 'additional', '', 'در header.php قالب، user-scalable=no و maximum-scale=1 را حذف کنید.' );
+		} else {
+			$items[] = self::item( 'viewport', 'good', 'تگ viewport موبایل درست است.', 'additional' );
+		}
+		return $items;
 	}
 
 	/** Words that make titles more clickable (Persian + English). */
@@ -471,6 +563,10 @@ class SSAI_Analyzer {
 			}
 		} elseif ( $h1 > 0 ) {
 			$items[] = self::item( 'h1', 'warning', sprintf( 'متن شامل %d تیتر H1 است؛ عنوان صفحه خودش H1 است و بهتر است در متن از H2/H3 استفاده شود.', $h1 ), 'title', 'rewrite', 'تیترهای H1 داخل متن را به H2 تبدیل کن.' );
+		}
+
+		foreach ( self::tech_items( $post_id, $ph ) as $ti ) {
+			$items[] = $ti;
 		}
 
 		/* ------------------------------------------------ Content readability */

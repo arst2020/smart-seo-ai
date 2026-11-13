@@ -71,6 +71,7 @@ class SSAI_SEO_Admin {
 				$old_strip                = ! empty( $o['strip_category'] );
 				$o['strip_category']      = empty( $in['strip_category'] ) ? 0 : 1;
 				$o['noindex_empty']       = empty( $in['noindex_empty'] ) ? 0 : 1;
+				update_option( 'ssai_viewport', empty( $in['viewport'] ) ? 0 : 1, true );
 				$o['crumb']               = array(
 					'sep'       => isset( $in['crumb']['sep'] ) ? sanitize_text_field( $in['crumb']['sep'] ) : '»',
 					'home'      => isset( $in['crumb']['home'] ) ? sanitize_text_field( $in['crumb']['home'] ) : '',
@@ -231,6 +232,7 @@ class SSAI_SEO_Admin {
 				<?php self::check( 'ssai[strip_category]', ! empty( $o['strip_category'] ), 'حذف /category/ از آدرس دسته‌ها', 'اگر در Rank Math «Strip Category Base» روشن بوده، این را هم روشن بگذارید تا آدرس دسته‌ها عوض نشود. آدرس‌های قدیمی با /category/ خودکار ریدایرکت می‌شوند.' ); ?>
 				<?php self::check( 'ssai[noindex_empty]', ! empty( $o['noindex_empty'] ), 'دسته‌ها و برچسب‌های خالی noindex شوند' ); ?>
 			</td></tr>
+			<tr><th scope="row">موبایل</th><td><?php self::check( 'ssai[viewport]', (bool) get_option( 'ssai_viewport' ), 'افزودن تگ viewport موبایل به همه صفحه‌ها', 'فقط اگر قالب این تگ را ندارد روشن کنید (بررسی سئو هر صفحه نشان می‌دهد)؛ اگر قالب خودش دارد، روشن بودن این گزینه تگ تکراری می‌سازد.' ); ?></td></tr>
 			<tr><th scope="row">Breadcrumb</th><td>
 				<label>جداکننده <input type="text" name="ssai[crumb][sep]" value="<?php echo esc_attr( $o['crumb']['sep'] ); ?>" class="small-text"></label>
 				<label>نام صفحه اصلی <input type="text" name="ssai[crumb][home]" value="<?php echo esc_attr( $o['crumb']['home'] ); ?>" placeholder="<?php echo esc_attr( __( 'Home' ) ); // phpcs:ignore WordPress.WP.I18n.MissingArgDomain ?>"></label>

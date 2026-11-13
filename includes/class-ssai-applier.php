@@ -23,6 +23,7 @@ class SSAI_Applier {
 			'content'          => 'محتوای کامل',
 			'elementor_text'   => 'متن ویجت‌های المنتور',
 			'avada_text'       => 'متن المان‌های آوادا',
+			'canonical'        => 'canonical خودارجاع',
 		);
 	}
 
@@ -168,6 +169,38 @@ class SSAI_Applier {
 					}
 					$new = sprintf( '%d ویجت متنی بازنویسی شد', $n );
 				}
+				$r = true;
+				break;
+
+			case 'canonical':
+				// 'self': remove custom canonicals (this plugin, Rank Math, Yoast) so the page points to itself, and
+				// when the page printed none, let this plugin print it. A JSON string (undo) restores the old state.
+				$keys = array( SSAI_SEO::M_CANON, 'rank_math_canonical_url', '_yoast_wpseo_canonical', SSAI_SEO::M_FORCE_CANON );
+				$prev = array();
+				foreach ( $keys as $k ) {
+					$prev[ $k ] = (string) get_post_meta( $post_id, $k, true );
+				}
+				$old = wp_json_encode( $prev );
+				if ( 'self' === $value ) {
+					foreach ( $keys as $k ) {
+						delete_post_meta( $post_id, $k );
+					}
+					if ( ! empty( $extra['force'] ) ) {
+						update_post_meta( $post_id, SSAI_SEO::M_FORCE_CANON, 1 );
+					}
+					$new = get_permalink( $post_id );
+				} else {
+					$restore = json_decode( (string) $value, true );
+					foreach ( $keys as $k ) {
+						if ( ! empty( $restore[ $k ] ) ) {
+							update_post_meta( $post_id, $k, $restore[ $k ] );
+						} else {
+							delete_post_meta( $post_id, $k );
+						}
+					}
+					$new = 'بازگردانی canonical قبلی';
+				}
+				delete_transient( 'ssai_live_' . $post_id );
 				$r = true;
 				break;
 

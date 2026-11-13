@@ -20,7 +20,7 @@ class SSAI_Admin {
 		}
 
 		add_filter( 'wp_php_error_message', array( __CLASS__, 'ajax_fatal_message' ), 10, 2 );
-		foreach ( array( 'rules', 'ai_analyze', 'ai_rewrite', 'ai_fix', 'apply', 'undo', 'test', 'fetch_updates' ) as $a ) {
+		foreach ( array( 'rules', 'ai_analyze', 'ai_rewrite', 'ai_fix', 'apply', 'undo', 'test', 'fetch_updates', 'tech_fix' ) as $a ) {
 			add_action( 'wp_ajax_ssai_' . $a, array( __CLASS__, 'ajax_' . $a ) );
 		}
 	}
@@ -400,6 +400,34 @@ class SSAI_Admin {
 			}
 		}
 		return wp_json_encode( array( 'success' => false, 'data' => array( 'message' => $text ) ), JSON_UNESCAPED_UNICODE );
+	}
+
+	/** Canonical / viewport fixes offered by the SEO check (after the user confirmed the explanation). */
+	public static function ajax_tech_fix() {
+		check_ajax_referer( 'ssai', 'nonce' );
+		$post_id = isset( $_POST['post_id'] ) ? absint( $_POST['post_id'] ) : 0;
+		$kind    = isset( $_POST['kind'] ) ? sanitize_key( wp_unslash( $_POST['kind'] ) ) : '';
+		if ( 'viewport' === $kind ) {
+			if ( ! current_user_can( 'manage_options' ) ) {
+				wp_send_json_error( array( 'message' => 'فقط مدیر سایت می‌تواند تنظیم سراسری viewport را روشن کند.' ), 403 );
+			}
+			update_option( 'ssai_viewport', 1, true );
+			if ( $post_id ) {
+				delete_transient( 'ssai_live_' . $post_id );
+			}
+			wp_send_json_success( array( 'message' => 'تگ viewport از این به بعد در همه صفحه‌ها اضافه می‌شود (تنظیمات سئو › عمومی). اگر از افزونه کش استفاده می‌کنید، کش را پاک کنید.' ) );
+		}
+		if ( 'canonical' !== $kind || ! $post_id || ! SSAI_Applier::can( $post_id ) ) {
+			wp_send_json_error( array( 'message' => 'دسترسی ندارید.' ), 403 );
+		}
+		$live  = SSAI_Analyzer::page_h1s( $post_id, false );
+		$force = is_array( $live ) && isset( $live['head'] ) && empty( $live['head']['canonical'] );
+		$r     = SSAI_Applier::apply( $post_id, 'canonical', 'self', array( 'force' => $force ) );
+		if ( is_wp_error( $r ) ) {
+			wp_send_json_error( array( 'message' => $r->get_error_message() ) );
+		}
+		SSAI_Applier::purge_cache( $post_id );
+		wp_send_json_success( array( 'message' => 'canonical روی خود صفحه تنظیم شد' . ( $force ? ' و افزونه آن را در <head> صفحه چاپ می‌کند' : '' ) . '. اگر افزونه کش دارید، کش این صفحه را پاک کنید.' ) );
 	}
 
 	/* ---------------------------------------------------------------- Settings page */

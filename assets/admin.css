@@ -391,3 +391,4 @@
 .ssai-ds-page .ssai-ds-lead { font-size: 17px; }
 .ssai-cs-code { width: 100%; font-family: Consolas, Monaco, monospace; font-size: 12px; direction: ltr; text-align: left; background: #f6f7f7; }
 .ssai-cs-field[hidden] { display: none; }
+.ssai-tech-h { margin: 14px 0 6px; font-size: 14px; }

@@ -444,7 +444,32 @@
 		}).catch(function (e) { busy(btn, false); holder.appendChild(el('div', { class: 'ssai-msg ssai-msg-error', text: e.message })); });
 	}
 
+	/* Report page: canonical / viewport fix buttons (explain, confirm, apply, reload). */
+	document.addEventListener('click', function (e) {
+		var b = e.target.closest ? e.target.closest('.ssai-tech-fix') : null;
+		if (!b) return;
+		if (!window.confirm(b.getAttribute('data-confirm'))) return;
+		b.disabled = true;
+		request('tech_fix', { post_id: b.getAttribute('data-post') || S.postId, kind: b.getAttribute('data-kind') }).then(function (r) {
+			b.insertAdjacentElement('afterend', el('div', { class: 'ssai-msg ssai-msg-success', text: '✓ ' + r.message + ' — صفحه دوباره بررسی می‌شود…' }));
+			setTimeout(function () { location.reload(); }, 1800);
+		}).catch(function (er) { b.disabled = false; b.insertAdjacentElement('afterend', el('div', { class: 'ssai-msg ssai-msg-error', text: er.message })); });
+	});
+
 	function fixAction(it, holder) {
+		if (it.action && S.canApply) {
+			var tb = el('button', { type: 'button', class: 'ssai-fix-btn', text: '🔧 ' + it.action.label });
+			tb.addEventListener('click', function () {
+				if (!window.confirm(it.action.confirm)) return;
+				busy(tb, true);
+				request('tech_fix', { post_id: S.postId, kind: it.action.kind }).then(function (r) {
+					holder.appendChild(el('div', { class: 'ssai-msg ssai-msg-success', text: '✓ ' + r.message }));
+					tb.remove();
+					setTimeout(loadRules, 1500);
+				}).catch(function (e) { busy(tb, false); holder.appendChild(el('div', { class: 'ssai-msg ssai-msg-error', text: e.message })); });
+			});
+			return el('div', {}, [tb, it.hint ? el('div', { class: 'ssai-hint', text: it.hint }) : null]);
+		}
 		if (!it.fix && it.hint) return el('div', { class: 'ssai-hint', text: '💡 ' + it.hint });
 		if (!it.fix || !S.canApply) return it.hint ? el('div', { class: 'ssai-hint', text: it.hint }) : null;
 		var b = el('button', { type: 'button', class: 'ssai-fix-btn', text: '✦ ' + (FIX_LABEL[it.fix] || FIX_LABEL.rewrite) });
