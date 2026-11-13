@@ -392,3 +392,8 @@
 .ssai-cs-code { width: 100%; font-family: Consolas, Monaco, monospace; font-size: 12px; direction: ltr; text-align: left; background: #f6f7f7; }
 .ssai-cs-field[hidden] { display: none; }
 .ssai-tech-h { margin: 14px 0 6px; font-size: 14px; }
+.ssai-tech-st { font-weight: 600; }
+.ssai-tech-st.ssai-good { color: #1e7e34; }
+.ssai-tech-st.ssai-warning { color: #8a4b00; }
+.ssai-tech-st.ssai-error { color: #b32d2e; }
+.ssai-tech-table td .description { font-size: 11px; word-break: break-all; }

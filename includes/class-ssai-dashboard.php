@@ -187,6 +187,19 @@ class SSAI_Dashboard {
 				return $x[0] - $y[0];
 			}
 		);
+		// Site-wide technical check (canonical / viewport), when it has been run.
+		$tn = SSAI_Tech::counts();
+		if ( $tn['pages'] ) {
+			$turl = SSAI_Site::url( array( 'tab' => 'tech' ) );
+			$cbad = ( isset( $tn['c']['missing'] ) ? $tn['c']['missing'] : 0 ) + ( isset( $tn['c']['multi'] ) ? $tn['c']['multi'] : 0 );
+			$vbad = ( isset( $tn['v']['missing'] ) ? $tn['v']['missing'] : 0 ) + ( isset( $tn['v']['nowidth'] ) ? $tn['v']['nowidth'] : 0 );
+			if ( $cbad ) {
+				$a[] = array( 2, sprintf( '%s صفحه canonical ندارد یا چند canonical متفاوت دارد.', number_format_i18n( $cbad ) ), $turl, 'بررسی فنی' );
+			}
+			if ( $vbad ) {
+				$a[] = array( 2, sprintf( '%s صفحه تگ viewport موبایل درست ندارد.', number_format_i18n( $vbad ) ), $turl, 'بررسی فنی' );
+			}
+		}
 		return $a;
 	}
 

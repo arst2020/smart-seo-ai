@@ -686,7 +686,7 @@ class SSAI_Site {
 	}
 
 	public static function page() {
-		$tab    = isset( $_GET['tab'] ) && in_array( $_GET['tab'], array( 'links', 'ai', 'ahrefs' ), true ) ? sanitize_key( $_GET['tab'] ) : 'overview'; // phpcs:ignore WordPress.Security.NonceVerification
+		$tab    = isset( $_GET['tab'] ) && in_array( $_GET['tab'], array( 'links', 'ai', 'ahrefs', 'tech' ), true ) ? sanitize_key( $_GET['tab'] ) : 'overview'; // phpcs:ignore WordPress.Security.NonceVerification
 		$notice = get_transient( 'ssai_site_notice_' . get_current_user_id() );
 		delete_transient( 'ssai_site_notice_' . get_current_user_id() );
 		?>
@@ -701,12 +701,15 @@ class SSAI_Site {
 				<a href="<?php echo esc_url( self::url( array( 'tab' => 'links' ) ) ); ?>" class="nav-tab <?php echo 'links' === $tab ? 'nav-tab-active' : ''; ?>">بک‌لینک‌ها</a>
 				<a href="<?php echo esc_url( self::url( array( 'tab' => 'ai' ) ) ); ?>" class="nav-tab <?php echo 'ai' === $tab ? 'nav-tab-active' : ''; ?>">AEO / GEO / SXO</a>
 				<a href="<?php echo esc_url( self::url( array( 'tab' => 'ahrefs' ) ) ); ?>" class="nav-tab <?php echo 'ahrefs' === $tab ? 'nav-tab-active' : ''; ?>">Ahrefs</a>
+				<a href="<?php echo esc_url( self::url( array( 'tab' => 'tech' ) ) ); ?>" class="nav-tab <?php echo 'tech' === $tab ? 'nav-tab-active' : ''; ?>">بررسی فنی</a>
 			</nav>
 			<?php
 			if ( 'links' === $tab ) {
 				self::render_links();
 			} elseif ( 'ahrefs' === $tab ) {
 				SSAI_Ahrefs::render();
+			} elseif ( 'tech' === $tab ) {
+				SSAI_Tech::render();
 			} elseif ( 'ai' === $tab ) {
 				wp_enqueue_script( 'ssai-aeo', SSAI_URL . 'assets/aeo.js', array( 'ssai-admin' ), SSAI_VERSION, true );
 				SSAI_AEO::render();

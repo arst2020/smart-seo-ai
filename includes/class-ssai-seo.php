@@ -18,6 +18,9 @@ class SSAI_SEO {
 	const M_ROBOTS  = '_ssai_robots';      // array( 'noindex', 'nofollow' ).
 	const M_CANON   = '_ssai_canonical';
 	const M_FORCE_CANON = '_ssai_force_canonical'; // Page printed no canonical: this plugin prints a self-referencing one.
+
+	/** This request already printed a canonical from head(). */
+	public static $canon_printed = false;
 	const M_OGTITLE = '_ssai_og_title';
 	const M_OGDESC  = '_ssai_og_desc';
 	const M_OGIMG   = '_ssai_og_image';
@@ -210,7 +213,7 @@ class SSAI_SEO {
 		if ( is_admin() || is_feed() || is_robots() ) {
 			return;
 		}
-		add_action( 'wp_head', array( __CLASS__, 'fallback_tags' ), 1 );
+		add_action( 'wp_head', array( __CLASS__, 'fallback_tags' ), 99 ); // Late: after this plugin's own head output.
 		if ( ! self::on( 'head' ) ) {
 			return;
 		}
@@ -786,7 +789,7 @@ class SSAI_SEO {
 		if ( get_option( 'ssai_viewport' ) ) {
 			echo '<meta name="viewport" content="width=device-width, initial-scale=1">' . "\n";
 		}
-		if ( is_singular() && ! self::on( 'head' ) && get_post_meta( get_queried_object_id(), self::M_FORCE_CANON, true ) && ! has_action( 'wp_head', 'rel_canonical' ) ) {
+		if ( is_singular() && ! self::$canon_printed && get_post_meta( get_queried_object_id(), self::M_FORCE_CANON, true ) && ! has_action( 'wp_head', 'rel_canonical' ) ) {
 			echo '<link rel="canonical" href="' . esc_url( get_permalink( get_queried_object_id() ) ) . '" />' . "\n";
 		}
 	}
@@ -800,6 +803,7 @@ class SSAI_SEO {
 			$out[] = '<meta name="description" content="' . esc_attr( $m['desc'] ) . '" />';
 		}
 		if ( '' !== $m['canonical'] ) {
+			self::$canon_printed = true;
 			$out[] = '<link rel="canonical" href="' . esc_url( $m['canonical'] ) . '" />';
 		}
 		$ogp = array(
