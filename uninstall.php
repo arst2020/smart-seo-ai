@@ -34,3 +34,5 @@ foreach ( array( '_ssai_last_ai', '_ssai_score', '_ssai_history', '_ssai_psi', '
 global $wpdb;
 $wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}ssai_404" ); // phpcs:ignore WordPress.DB
 delete_option( 'ssai_db_ver' );
+delete_option( 'smart_seo_ai_github_token' );
+delete_site_transient( 'smart_seo_ai_gh_release' );
