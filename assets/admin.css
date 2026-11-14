@@ -397,3 +397,12 @@
 .ssai-tech-st.ssai-warning { color: #8a4b00; }
 .ssai-tech-st.ssai-error { color: #b32d2e; }
 .ssai-tech-table td .description { font-size: 11px; word-break: break-all; }
+
+/* SEO review: status filter + status badges */
+.ssai .ssai-status-filter { float: none; margin: 8px 0 4px; }
+.ssai .ssai-status-filter .current { font-weight: 600; color: #000; }
+.ssai .ssai-status { display: inline-block; padding: 1px 8px; border-radius: 99px; font-size: 12px; white-space: nowrap; background: #f0f0f1; color: #50575e; }
+.ssai .ssai-status-publish { background: #edfaef; color: #00701a; }
+.ssai .ssai-status-draft { background: #fcf9e8; color: #8a6d00; }
+.ssai .ssai-status-pending { background: #fef1e6; color: #a34900; }
+.ssai .ssai-status-future { background: #f0f6fc; color: #135e96; }

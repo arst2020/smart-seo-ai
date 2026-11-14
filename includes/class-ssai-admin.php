@@ -208,6 +208,17 @@ class SSAI_Admin {
 		return '<th scope="col" aria-sort="' . $aria . '" class="ssai-sortable' . ( $is ? ' is-sorted' : '' ) . '"><a href="' . esc_url( $url ) . '">' . esc_html( $label ) . '<span class="ssai-sort-ind" aria-hidden="true">' . $arrow . '</span></a></th>';
 	}
 
+	/** Post statuses shown in the SEO review, with Persian labels. */
+	public static function status_labels() {
+		return array(
+			'publish' => 'منتشر شده',
+			'draft'   => 'پیش‌نویس',
+			'pending' => 'در انتظار بررسی',
+			'future'  => 'زمان‌بندی‌شده',
+			'private' => 'خصوصی',
+		);
+	}
+
 	public static function page_scan() {
 		// phpcs:disable WordPress.Security.NonceVerification
 		$types = self::post_types();
@@ -220,12 +231,23 @@ class SSAI_Admin {
 		$cols    = array( 'title', 'type', 'status', 'kw', 'score', 'err', 'wrn', 'clicks', 'position', 'modified' );
 		$orderby = isset( $_GET['orderby'] ) && in_array( $_GET['orderby'], $cols, true ) ? sanitize_key( $_GET['orderby'] ) : 'modified';
 		$order   = isset( $_GET['order'] ) && 'asc' === $_GET['order'] ? 'asc' : 'desc';
+
+		// Status filter (all / published / draft / …). The last choice is remembered per user.
+		$statuses = self::status_labels();
+		if ( isset( $_GET['ssai_status'] ) ) {
+			$status = sanitize_key( wp_unslash( $_GET['ssai_status'] ) );
+			$status = ( 'all' === $status || isset( $statuses[ $status ] ) ) ? $status : 'all';
+			update_user_meta( get_current_user_id(), 'ssai_scan_status', $status );
+		} else {
+			$status = (string) get_user_meta( get_current_user_id(), 'ssai_scan_status', true );
+			$status = isset( $statuses[ $status ] ) ? $status : 'all';
+		}
 		// phpcs:enable
 
 		$ids = get_posts(
 			array(
 				'post_type'      => 'any' === $type ? $types : $type,
-				'post_status'    => array( 'publish', 'draft', 'pending', 'future', 'private' ),
+				'post_status'    => array_keys( $statuses ),
 				'perm'           => 'editable', // Authors/contributors see only their own posts.
 				'posts_per_page' => 2000,
 				'orderby'        => 'modified',
@@ -240,9 +262,19 @@ class SSAI_Admin {
 		$gsc       = SSAI_GSC::connected() || ! empty( $gsc_pages );
 
 		// Build all rows, then sort, then paginate (so sorting covers every page of results).
-		$rows = array();
+		$rows   = array();
+		$counts = array_fill_keys( array_keys( $statuses ), 0 );
 		foreach ( $ids as $i => $id ) {
-			$p   = get_post( $id );
+			$p = get_post( $id );
+			if ( ! $p ) {
+				continue;
+			}
+			if ( isset( $counts[ $p->post_status ] ) ) {
+				$counts[ $p->post_status ]++;
+			}
+			if ( 'all' !== $status && $p->post_status !== $status ) {
+				continue;
+			}
 			$row = self::scan_row( $p );
 			$g   = $gsc ? ( isset( $gsc_pages[ SSAI_GSC_Import::url_key( $row['url'] ) ] ) ? $gsc_pages[ SSAI_GSC_Import::url_key( $row['url'] ) ] : null ) : null;
 			$pto = get_post_type_object( $p->post_type );
@@ -294,8 +326,26 @@ class SSAI_Admin {
 			<?php if ( '' === SSAI_Settings::api_key() && SSAI_Settings::provider_info()['key'] ) : ?>
 				<div class="notice notice-warning"><p>کلید API هوش مصنوعی هنوز تنظیم نشده است. <a href="<?php echo esc_url( admin_url( 'admin.php?page=smart-seo-ai-settings' ) ); ?>">رفتن به تنظیمات</a></p></div>
 			<?php endif; ?>
+			<ul class="subsubsub ssai-status-filter">
+				<?php
+				$links = array();
+				$all_n = array_sum( $counts );
+				$items = array( 'all' => 'همه' ) + $statuses;
+				foreach ( $items as $k => $label ) {
+					$n = 'all' === $k ? $all_n : $counts[ $k ];
+					if ( 'all' !== $k && 'publish' !== $k && 'draft' !== $k && ! $n ) {
+						continue; // Hide empty minor statuses (pending, scheduled, private).
+					}
+					$url     = add_query_arg( array( 'ssai_status' => $k, 'paged' => 1 ) );
+					$links[] = '<li><a href="' . esc_url( $url ) . '"' . ( $status === $k ? ' class="current" aria-current="page"' : '' ) . '>' . esc_html( $label ) . ' <span class="count">(' . esc_html( number_format_i18n( $n ) ) . ')</span></a>';
+				}
+				echo implode( ' | </li>', $links ) . '</li>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped above.
+				?>
+			</ul>
+			<br class="clear">
 			<form method="get" class="ssai-filter">
 				<input type="hidden" name="page" value="smart-seo-ai-pages">
+				<input type="hidden" name="ssai_status" value="<?php echo esc_attr( $status ); ?>">
 				<input type="hidden" name="orderby" value="<?php echo esc_attr( $orderby ); ?>">
 				<input type="hidden" name="order" value="<?php echo esc_attr( $order ); ?>">
 				<select name="ssai_type">
@@ -338,7 +388,7 @@ class SSAI_Admin {
 					echo '<tr>';
 					echo '<td><strong><a href="' . esc_url( SSAI_Report::url( $row['id'] ) ) . '" title="گزارش کامل سئو و گوگل">' . esc_html( '' !== $row['title'] ? $row['title'] : '(بدون عنوان)' ) . '</a></strong></td>';
 					echo '<td>' . esc_html( $row['type'] ) . ( $row['el'] ? ' <span class="ssai-el-tag">Elementor</span>' : '' ) . '</td>';
-					echo '<td>' . esc_html( $row['status'] ) . '</td>';
+					echo '<td><span class="ssai-status ssai-status-' . esc_attr( $row['status'] ) . '">' . esc_html( isset( $statuses[ $row['status'] ] ) ? $statuses[ $row['status'] ] : $row['status'] ) . '</span></td>';
 					echo '<td>' . esc_html( '' !== $row['kw'] ? $row['kw'] : '—' ) . '</td>';
 					echo '<td><span class="ssai-badge ssai-' . esc_attr( $cls ) . '">' . (int) $row['score'] . '</span></td>';
 					echo '<td>' . (int) $row['err'] . '</td><td>' . (int) $row['wrn'] . '</td>';
