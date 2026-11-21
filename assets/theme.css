@@ -1,0 +1,161 @@
+/* Smart SEO AI – modern admin theme (light + dark). Scoped to the plugin's own screens. */
+
+/* Vazirmatn (SIL Open Font License, fonts/Vazirmatn-OFL.txt) – bundled, no request to Google. */
+@font-face { font-family: Vazirmatn; src: url(fonts/Vazirmatn.woff2) format("woff2"); font-weight: 100 900; font-display: swap; }
+
+body.ssai-page {
+	--s-bg: #f4f6fb; --s-card: #fff; --s-ink: #0f172a; --s-muted: #64748b; --s-line: #e7ebf3;
+	--s-brand: #4f46e5; --s-brand2: #7c3aed; --s-good: #16a34a; --s-warn: #d97706; --s-bad: #dc2626; --s-info: #0284c7;
+	--s-soft: #f8fafc; --s-chip: #eef2ff; --s-track: #eef2f7;
+	--s-p1: #fee2e2; --s-p2: #fef3c7; --s-p2fg: #b45309; --s-p3: #e0f2fe; --s-ok: #ecfdf5; --s-wbg: #fffbeb;
+	--s-r: 16px; --s-shadow: 0 1px 2px rgba(15,23,42,.04), 0 4px 16px rgba(15,23,42,.06);
+	--ssai-good: var(--s-good); --ssai-warn: var(--s-warn); --ssai-err: var(--s-bad);
+}
+.ssai-dark body.ssai-page {
+	--s-bg: #0b1020; --s-card: #131a2e; --s-ink: #e2e8f0; --s-muted: #94a3b8; --s-line: #232c45;
+	--s-brand: #818cf8; --s-brand2: #a78bfa; --s-good: #4ade80; --s-warn: #fbbf24; --s-bad: #f87171; --s-info: #38bdf8;
+	--s-soft: #0f1527; --s-chip: rgba(129,140,248,.14); --s-track: #1e2740;
+	--s-p1: rgba(248,113,113,.15); --s-p2: rgba(251,191,36,.15); --s-p2fg: #fbbf24; --s-p3: rgba(56,189,248,.15); --s-ok: rgba(74,222,128,.13); --s-wbg: rgba(251,191,36,.13);
+	--s-shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.35);
+}
+body.ssai-page #wpcontent, body.ssai-page #wpfooter { background: var(--s-bg); }
+.ssai-dark body.ssai-page #wpfooter, .ssai-dark body.ssai-page #wpfooter a { color: var(--s-muted); }
+
+.ssai-page .wrap.ssai { font-family: Vazirmatn, Tahoma, "Segoe UI", sans-serif; color: var(--s-ink); font-size: 13.5px; }
+.ssai-page .wrap.ssai h1 { font-size: 22px; font-weight: 800; color: var(--s-ink); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.ssai-page .wrap.ssai h2, .ssai-page .wrap.ssai h3, .ssai-page .wrap.ssai h4 { color: var(--s-ink); font-family: inherit; }
+.ssai-page .wrap.ssai .description, .ssai-page .wrap.ssai p.description, .ssai-page .wrap.ssai .howto { color: var(--s-muted); }
+.ssai-page .wrap.ssai a { color: var(--s-brand); }
+.ssai-page .wrap.ssai a:hover { color: var(--s-brand2); }
+.ssai-page .wrap.ssai code { background: var(--s-soft); color: var(--s-ink); border-radius: 5px; }
+.ssai-page .wrap.ssai hr { border-color: var(--s-line); }
+
+/* Cards */
+.ssai-page .wrap.ssai .ssai-card {
+	background: var(--s-card); border: 1px solid var(--s-line); border-radius: var(--s-r); box-shadow: var(--s-shadow);
+	padding: 18px 20px; margin-bottom: 16px; color: var(--s-ink);
+}
+.ssai-page .wrap.ssai .ssai-card h2 { margin-top: 0; font-size: 16px; font-weight: 700; }
+
+/* KPI tiles */
+.ssai-page .wrap.ssai .ssai-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; }
+.ssai-page .wrap.ssai .ssai-tile {
+	position: relative; background: var(--s-card); border: 1px solid var(--s-line); border-radius: 14px; padding: 14px 16px;
+	box-shadow: var(--s-shadow); display: flex; flex-direction: column; gap: 2px; transition: transform .15s, box-shadow .15s;
+}
+.ssai-page .wrap.ssai .ssai-tile:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(15,23,42,.12); }
+.ssai-page .wrap.ssai .ssai-tile > span:first-child, .ssai-page .wrap.ssai .ssai-tile-label { color: var(--s-muted); font-size: 12px; }
+.ssai-page .wrap.ssai .ssai-tile strong { font-size: 26px; font-weight: 800; line-height: 1.35; color: var(--s-ink); }
+.ssai-page .wrap.ssai .ssai-tile-good strong { color: var(--s-good); }
+.ssai-page .wrap.ssai .ssai-tile-warning strong { color: var(--s-warn); }
+.ssai-page .wrap.ssai .ssai-tile-error strong { color: var(--s-bad); }
+.ssai-page .wrap.ssai .ssai-tile-link { font-size: 12px; text-decoration: none; margin-top: 4px; }
+.ssai-page .wrap.ssai .ssai-tile-ic { position: absolute; inset-inline-end: 14px; top: 14px; width: 36px; height: 36px; border-radius: 11px; display: grid; place-items: center; background: var(--s-chip); color: var(--s-brand); }
+.ssai-page .wrap.ssai .ssai-tile-ic ~ .ssai-tile-label { padding-inline-end: 46px; min-height: 30px; }
+.ssai-page .wrap.ssai .ssai-dash-kpis { margin-bottom: 18px; }
+.ssai-page .wrap.ssai .ssai-tile-ic svg { width: 18px; height: 18px; }
+.ssai-page .wrap.ssai .ssai-tile-good .ssai-tile-ic { background: var(--s-ok); color: var(--s-good); }
+.ssai-page .wrap.ssai .ssai-tile-warning .ssai-tile-ic { background: var(--s-wbg); color: var(--s-warn); }
+.ssai-page .wrap.ssai .ssai-tile-error .ssai-tile-ic { background: var(--s-p1); color: var(--s-bad); }
+
+/* Hero (dashboard) */
+.ssai-page .wrap.ssai .ssai-hero {
+	display: flex; align-items: center; gap: 20px; flex-wrap: wrap; color: #fff; border-radius: 20px; padding: 22px 26px; margin: 8px 0 18px;
+	background: linear-gradient(120deg, #4f46e5, #7c3aed); box-shadow: 0 10px 30px rgba(79,70,229,.25);
+}
+.ssai-dark .ssai-page .wrap.ssai .ssai-hero { background: linear-gradient(120deg, #3730a3, #6d28d9); box-shadow: 0 10px 30px rgba(0,0,0,.4); }
+.ssai-page .wrap.ssai .ssai-hero h2 { color: #fff; margin: 0 0 4px; font-size: 20px; }
+.ssai-page .wrap.ssai .ssai-hero p { margin: 0; opacity: .88; }
+.ssai-page .wrap.ssai .ssai-hero a { color: #fff; }
+.ssai-ring { --v: 0; width: 92px; height: 92px; border-radius: 50%; flex: none; display: grid; place-items: center; background: conic-gradient(#fff calc(var(--v) * 1%), rgba(255,255,255,.22) 0); }
+.ssai-ring b { width: 72px; height: 72px; border-radius: 50%; background: rgba(49,46,129,.55); display: grid; place-items: center; font-size: 26px; font-weight: 800; }
+.ssai-hero-chips { margin-inline-start: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+.ssai-page .wrap.ssai .ssai-hero-chip { background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.28); color: #fff; padding: 6px 12px; border-radius: 999px; font-size: 12px; text-decoration: none; white-space: nowrap; }
+.ssai-page .wrap.ssai a.ssai-hero-chip:hover { background: rgba(255,255,255,.26); color: #fff; }
+
+/* Tables */
+.ssai-page .wrap.ssai table.widefat { border: 1px solid var(--s-line); border-radius: 12px; overflow: hidden; background: var(--s-card); box-shadow: none; border-collapse: separate; border-spacing: 0; }
+.ssai-page .wrap.ssai .widefat thead th, .ssai-page .wrap.ssai .widefat thead td, .ssai-page .wrap.ssai .widefat tfoot th { background: var(--s-soft); color: var(--s-muted); font-weight: 600; font-size: 12px; border-bottom: 1px solid var(--s-line); }
+.ssai-page .wrap.ssai .widefat td, .ssai-page .wrap.ssai .widefat th { color: var(--s-ink); border-color: var(--s-line); }
+.ssai-page .wrap.ssai .widefat tbody tr td { border-bottom: 1px solid var(--s-line); }
+.ssai-page .wrap.ssai .widefat tbody tr:last-child td { border-bottom: 0; }
+.ssai-page .wrap.ssai .striped > tbody > :nth-child(odd), .ssai-page .wrap.ssai .alternate { background: var(--s-soft); }
+.ssai-page .wrap.ssai .widefat tbody tr:hover td { background: var(--s-chip); }
+.ssai-page .wrap.ssai .form-table th { color: var(--s-ink); }
+.ssai-page .wrap.ssai .form-table td { color: var(--s-ink); }
+
+/* Buttons & inputs */
+.ssai-page .wrap.ssai .button, .ssai-page .wrap.ssai .page-title-action {
+	border-radius: 9px; border-color: var(--s-line); background: var(--s-card); color: var(--s-brand); font-family: inherit; min-height: 32px; transition: background .15s, box-shadow .15s;
+}
+.ssai-page .wrap.ssai .button:hover, .ssai-page .wrap.ssai .page-title-action:hover { background: var(--s-chip); border-color: var(--s-brand); color: var(--s-brand); }
+.ssai-page .wrap.ssai .button-primary { background: linear-gradient(120deg, #4f46e5, #7c3aed); border: 0; color: #fff; box-shadow: 0 2px 8px rgba(79,70,229,.3); }
+.ssai-page .wrap.ssai .button-primary:hover, .ssai-page .wrap.ssai .button-primary:focus { background: linear-gradient(120deg, #4338ca, #6d28d9); color: #fff; }
+.ssai-page .wrap.ssai .button:disabled, .ssai-page .wrap.ssai .button[disabled] { opacity: .5; }
+.ssai-page .wrap.ssai .button-link { color: var(--s-brand); }
+.ssai-page .wrap.ssai input[type=text], .ssai-page .wrap.ssai input[type=url], .ssai-page .wrap.ssai input[type=email], .ssai-page .wrap.ssai input[type=number],
+.ssai-page .wrap.ssai input[type=password], .ssai-page .wrap.ssai input[type=search], .ssai-page .wrap.ssai input[type=date], .ssai-page .wrap.ssai select, .ssai-page .wrap.ssai textarea {
+	border-radius: 9px; border-color: var(--s-line); background-color: var(--s-card); color: var(--s-ink); font-family: inherit;
+}
+.ssai-page .wrap.ssai input:focus, .ssai-page .wrap.ssai select:focus, .ssai-page .wrap.ssai textarea:focus { border-color: var(--s-brand); box-shadow: 0 0 0 2px var(--s-chip); }
+.ssai-page .wrap.ssai input[type=checkbox], .ssai-page .wrap.ssai input[type=radio] { border-color: var(--s-muted); background: var(--s-card); }
+.ssai-page .wrap.ssai input[type=checkbox]:checked { background: var(--s-brand); border-color: var(--s-brand); }
+.ssai-page .wrap.ssai input[type=checkbox]:checked::before { filter: brightness(0) invert(1); }
+
+/* Tabs */
+.ssai-page .wrap.ssai .nav-tab-wrapper { border-bottom: 0; display: flex; gap: 6px; flex-wrap: wrap; padding: 0; margin: 10px 0 16px; }
+.ssai-page .wrap.ssai .nav-tab { border: 1px solid var(--s-line); background: var(--s-card); color: var(--s-muted); border-radius: 999px; margin: 0; padding: 6px 14px; font-size: 13px; font-weight: 500; }
+.ssai-page .wrap.ssai .nav-tab:hover { color: var(--s-brand); background: var(--s-chip); }
+.ssai-page .wrap.ssai .nav-tab-active, .ssai-page .wrap.ssai .nav-tab-active:hover { background: var(--s-brand); border-color: var(--s-brand); color: #fff; }
+.ssai-dark .ssai-page .wrap.ssai .nav-tab-active { color: #0b1020; }
+
+/* Notices */
+.ssai-page .wrap.ssai .notice, .ssai-page .wrap .notice.inline { border-radius: 12px; background: var(--s-card); color: var(--s-ink); box-shadow: var(--s-shadow); border-top: 0; border-bottom: 0; border-left: 0; border-right-width: 4px; }
+.ssai-page .wrap.ssai .notice p { color: var(--s-ink); }
+
+/* Dashboard to-do list */
+.ssai-page .wrap.ssai ol.ssai-actions li { display: flex; align-items: center; gap: 10px; flex-wrap: nowrap; padding: 10px 0; border-bottom: 1px dashed var(--s-line); }
+.ssai-page .wrap.ssai ol.ssai-actions li:last-child { border-bottom: 0; }
+.ssai-page .wrap.ssai ol.ssai-actions li a { margin-inline-start: auto; flex: none; background: var(--s-chip); padding: 4px 10px; border-radius: 8px; font-weight: 600; font-size: 12px; }
+.ssai-page .wrap.ssai .ssai-act-lvl { flex: none; font-weight: 700; padding: 2px 10px; border-radius: 999px; }
+.ssai-page .wrap.ssai .ssai-act-1 .ssai-act-lvl { background: var(--s-p1); color: var(--s-bad); }
+.ssai-page .wrap.ssai .ssai-act-2 .ssai-act-lvl { background: var(--s-p2); color: var(--s-p2fg); }
+.ssai-page .wrap.ssai .ssai-act-3 .ssai-act-lvl { background: var(--s-p3); color: var(--s-info); }
+
+/* Charts */
+.ssai-page .wrap.ssai .ssai-grid { stroke: var(--s-line); }
+.ssai-page .wrap.ssai .ssai-axis { fill: var(--s-muted); }
+.ssai-page .wrap.ssai svg text { font-family: inherit; }
+
+/* Theme toggle */
+.ssai-theme-toggle { margin-inline-start: auto; border: 1px solid var(--s-line); background: var(--s-card); color: var(--s-ink); border-radius: 999px; padding: 5px 12px; font: 500 12px/1.6 Vazirmatn, Tahoma, sans-serif; cursor: pointer; box-shadow: var(--s-shadow); }
+.ssai-theme-toggle:hover { border-color: var(--s-brand); }
+
+/* ---- Dark mode: replace the light backgrounds used across the old styles ---- */
+.ssai-dark .wrap.ssai .ssai-issues li, .ssai-dark .wrap.ssai .ssai-ai-sum, .ssai-dark .wrap.ssai .ssai-import, .ssai-dark .wrap.ssai .ssai-why,
+.ssai-dark .wrap.ssai .ssai-faq-row > td, .ssai-dark .wrap.ssai .ssai-sch-form, .ssai-dark .wrap.ssai [style*="background:#f6f7f7"], .ssai-dark .wrap.ssai [style*="background: #f6f7f7"] { background: var(--s-soft) !important; color: var(--s-ink); }
+.ssai-dark .wrap.ssai .ssai-sugg, .ssai-dark .wrap.ssai .ssai-preview, .ssai-dark .wrap.ssai .ssai-snippet, .ssai-dark .wrap.ssai .ssai-kw-box, .ssai-dark .wrap.ssai .ssai-faq-edit,
+.ssai-dark .wrap.ssai .ssai-sch-item, .ssai-dark .wrap.ssai .ssai-psi-score, .ssai-dark .wrap.ssai .postbox, .ssai-dark .wrap.ssai [style*="background:#fff"], .ssai-dark .wrap.ssai [style*="background: #fff"] { background: var(--s-card) !important; border-color: var(--s-line) !important; color: var(--s-ink); }
+.ssai-dark .wrap.ssai .ssai-msg { background: var(--s-chip); color: var(--s-ink); }
+.ssai-dark .wrap.ssai .ssai-msg-ok, .ssai-dark .wrap.ssai .ssai-verdict-good, .ssai-dark .wrap.ssai tr.ssai-done td, .ssai-dark .wrap.ssai .ssai-risk-good, .ssai-dark .wrap.ssai .ssai-pos-top3, .ssai-dark .wrap.ssai .ssai-status-publish { background: var(--s-ok); color: var(--s-good); }
+.ssai-dark .wrap.ssai .ssai-msg-error, .ssai-dark .wrap.ssai .ssai-verdict-error, .ssai-dark .wrap.ssai .ssai-cmp tr.ssai-cmp-bad td, .ssai-dark .wrap.ssai .ssai-risk-error { background: var(--s-p1); color: var(--s-bad); }
+.ssai-dark .wrap.ssai .ssai-msg-warning, .ssai-dark .wrap.ssai .ssai-verdict-warning, .ssai-dark .wrap.ssai .ssai-privacy, .ssai-dark .wrap.ssai .ssai-risk-warning, .ssai-dark .wrap.ssai .ssai-pos-top20,
+.ssai-dark .wrap.ssai .ssai-chip, .ssai-dark .wrap.ssai .ssai-lowdata, .ssai-dark .wrap.ssai .ssai-status-draft, .ssai-dark .wrap.ssai .ssai-status-pending { background: var(--s-wbg); color: var(--s-warn); }
+.ssai-dark .wrap.ssai .ssai-pos-top10, .ssai-dark .wrap.ssai .ssai-chip-oppo, .ssai-dark .wrap.ssai .ssai-status-future { background: var(--s-p3); color: var(--s-info); }
+.ssai-dark .wrap.ssai .ssai-pos-far, .ssai-dark .wrap.ssai .ssai-pos-none, .ssai-dark .wrap.ssai .ssai-sev, .ssai-dark .wrap.ssai .ssai-status { background: var(--s-track); color: var(--s-muted); }
+.ssai-dark .wrap.ssai .ssai-fix-btn, .ssai-dark .wrap.ssai .ssai-sch-reason { background: rgba(167,139,250,.15); color: #c4b5fd; }
+.ssai-dark .wrap.ssai .ssai-chip-main { background: rgba(248,113,113,.2); color: #fca5a5; }
+.ssai-dark .wrap.ssai [style*="color:#b32d2e"] { color: var(--s-bad) !important; }
+.ssai-dark .wrap.ssai [style*="color:#008a20"], .ssai-dark .wrap.ssai [style*="color:#00701a"] { color: var(--s-good) !important; }
+.ssai-dark .wrap.ssai [style*="color:#646970"] { color: var(--s-muted) !important; }
+.ssai-dark .wrap.ssai svg[style*="background:#fff"], .ssai-dark .wrap.ssai svg[style*="background:#f6f7f7"] { background: var(--s-soft) !important; }
+.ssai-dark .wrap.ssai svg line[stroke="#dcdcde"], .ssai-dark .wrap.ssai svg line[stroke="#e5e5e5"] { stroke: var(--s-line); }
+.ssai-dark .wrap.ssai svg text[fill="#646970"] { fill: var(--s-muted); }
+.ssai-dark .wrap.ssai .ssai-cs-row, .ssai-dark .wrap.ssai .ssai-cs-day, .ssai-dark .wrap.ssai .ssai-ds-item, .ssai-dark .wrap.ssai .ssai-ds-blk { background: var(--s-card); border-color: var(--s-line); color: var(--s-ink); }
+.ssai-dark .wrap.ssai .wp-editor-container, .ssai-dark .wrap.ssai .quicktags-toolbar { background: var(--s-soft); border-color: var(--s-line); }
+
+@media (max-width: 782px) {
+	.ssai-page .wrap.ssai .ssai-hero { padding: 18px; }
+	.ssai-hero-chips { margin-inline-start: 0; }
+	.ssai-page .wrap.ssai .ssai-tiles { grid-template-columns: repeat(2, 1fr); }
+}

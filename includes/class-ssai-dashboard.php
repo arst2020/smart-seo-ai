@@ -9,8 +9,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class SSAI_Dashboard {
 
-	private static function tile( $label, $value, $sub = '', $cls = '', $link = '' ) {
-		echo '<div class="ssai-tile' . ( $cls ? ' ssai-tile-' . esc_attr( $cls ) : '' ) . '"><span>' . esc_html( $label ) . '</span><strong>' . esc_html( $value ) . '</strong>' . ( $sub ? '<span class="description">' . wp_kses_post( $sub ) . '</span>' : '' ) . ( $link ? '<a class="ssai-tile-link" href="' . esc_url( $link ) . '">جزئیات ←</a>' : '' ) . '</div>';
+	private static function tile( $label, $value, $sub = '', $cls = '', $link = '', $icon = '' ) {
+		echo '<div class="ssai-tile' . ( $cls ? ' ssai-tile-' . esc_attr( $cls ) : '' ) . '">' . SSAI_UI::icon( $icon ) . '<span class="ssai-tile-label">' . esc_html( $label ) . '</span><strong>' . esc_html( $value ) . '</strong>' . ( $sub ? '<span class="description">' . wp_kses_post( $sub ) . '</span>' : '' ) . ( $link ? '<a class="ssai-tile-link" href="' . esc_url( $link ) . '">جزئیات ←</a>' : '' ) . '</div>';
 	}
 
 	private static function avg_score() {
@@ -219,39 +219,53 @@ class SSAI_Dashboard {
 		<div class="wrap ssai ssai-report ssai-dash" dir="rtl">
 			<h1>Smart SEO AI <span class="description" dir="ltr"><?php echo esc_html( SSAI_Site::domain() ); ?></span></h1>
 			<hr class="wp-header-end">
-			<p class="ssai-owner">
-				<?php if ( '' === $owner ) : ?>
-					<span class="ssai-pos ssai-risk-good">✓ خروجی سئوی سایت با Smart SEO AI</span>
-				<?php else : ?>
-					<span class="ssai-pos ssai-risk-warning">خروجی سئوی سایت فعلاً با <?php echo esc_html( 'rankmath' === $owner ? 'Rank Math' : ( 'yoast' === $owner ? 'Yoast' : 'افزونه دیگر' ) ); ?></span>
-					<a href="<?php echo esc_url( SSAI_SEO_Admin::url( 'migrate' ) ); ?>">جابه‌جایی امن</a>
-				<?php endif; ?>
-			</p>
+			<?php
+			$acts  = self::actions();
+			$urgent = count( array_filter( $acts, function ( $a ) { return $a[0] <= 2; } ) );
+			$sc    = $avg ? (int) $avg[0] : 0;
+			?>
+			<section class="ssai-hero">
+				<div class="ssai-ring" style="--v:<?php echo (int) $sc; ?>"><b><?php echo $avg ? esc_html( number_format_i18n( $sc ) ) : '—'; ?></b></div>
+				<div>
+					<h2><?php echo esc_html( ! $avg ? 'هنوز صفحه‌ای بررسی نشده' : ( $sc >= 80 ? 'سلامت سئوی سایت: خوب' : ( $sc >= 50 ? 'سلامت سئوی سایت: متوسط' : 'سلامت سئوی سایت: ضعیف' ) ) ); ?></h2>
+					<p><?php echo $avg ? esc_html( 'میانگین امتیاز ' . number_format_i18n( $avg[1] ) . ' صفحه' ) : 'برای شروع، صفحه‌ها را بررسی کنید'; ?><?php echo $urgent ? esc_html( ' — ' . number_format_i18n( $urgent ) . ' کار مهم در انتظار شماست' ) : ' — کار فوری‌ای نیست'; ?></p>
+				</div>
+				<div class="ssai-hero-chips">
+					<?php if ( '' === $owner ) : ?>
+						<span class="ssai-hero-chip">✓ خروجی سئو با Smart SEO AI</span>
+					<?php else : ?>
+						<a class="ssai-hero-chip" href="<?php echo esc_url( SSAI_SEO_Admin::url( 'migrate' ) ); ?>">⚠ خروجی سئو فعلاً با <?php echo esc_html( 'rankmath' === $owner ? 'Rank Math' : ( 'yoast' === $owner ? 'Yoast' : 'افزونه دیگر' ) ); ?> — جابه‌جایی امن</a>
+					<?php endif; ?>
+					<?php if ( $audit && ! empty( $audit['time'] ) ) : ?>
+						<span class="ssai-hero-chip">آخرین بررسی کل سایت: <?php echo esc_html( human_time_diff( $audit['time'] ) ); ?> پیش</span>
+					<?php endif; ?>
+					<a class="ssai-hero-chip" href="<?php echo esc_url( admin_url( 'admin.php?page=smart-seo-ai-pages' ) ); ?>">🔄 بررسی صفحه‌ها</a>
+				</div>
+			</section>
 
-			<section class="ssai-card">
+			<section class="ssai-dash-kpis">
 				<div class="ssai-tiles">
 					<?php
-					self::tile( 'میانگین امتیاز سئو', $avg ? number_format_i18n( $avg[0] ) : '—', $avg ? 'از ' . number_format_i18n( $avg[1] ) . ' صفحه بررسی‌شده' : 'هنوز صفحه‌ای بررسی نشده', $avg ? ( $avg[0] >= 80 ? 'good' : ( $avg[0] >= 50 ? 'warning' : 'error' ) ) : '', admin_url( 'admin.php?page=smart-seo-ai-pages' ) );
 					if ( $gsc && ! empty( $gsc['dates'] ) ) {
 						$cl = array_sum( wp_list_pluck( $gsc['dates'], 'clicks' ) );
 						$im = array_sum( wp_list_pluck( $gsc['dates'], 'impressions' ) );
-						self::tile( 'کلیک از گوگل', number_format_i18n( $cl ), number_format_i18n( $im ) . ' نمایش — ' . esc_html( $gsc['range'] ), '', admin_url( 'admin.php?page=smart-seo-ai-gsc' ) );
+						self::tile( 'کلیک از گوگل', number_format_i18n( $cl ), number_format_i18n( $im ) . ' نمایش — ' . esc_html( $gsc['range'] ), '', admin_url( 'admin.php?page=smart-seo-ai-gsc' ), 'click' );
 					} else {
-						self::tile( 'کلیک از گوگل', '—', 'خروجی سرچ کنسول را وارد کنید', '', admin_url( 'admin.php?page=smart-seo-ai-gsc' ) );
+						self::tile( 'کلیک از گوگل', '—', 'خروجی سرچ کنسول را وارد کنید', '', admin_url( 'admin.php?page=smart-seo-ai-gsc' ), 'click' );
 					}
 					$seen = $gsc && ! empty( $gsc['pages'] ) ? count( $gsc['pages'] ) : null;
-					self::tile( 'صفحه‌های دیده‌شده در گوگل', null !== $seen ? number_format_i18n( min( $seen, $pub ) ) : '—', 'از ' . number_format_i18n( $pub ) . ' صفحه منتشرشده' );
-					self::tile( 'امتیاز AEO', $aeo && $aeo['pages'] ? number_format_i18n( (int) round( array_sum( wp_list_pluck( $aeo['pages'], 'score' ) ) / count( $aeo['pages'] ) ) ) : '—', 'آمادگی برای پاسخ‌های هوش مصنوعی', '', SSAI_Site::url( array( 'tab' => 'ai' ) ) );
+					self::tile( 'صفحه‌های دیده‌شده در گوگل', null !== $seen ? number_format_i18n( min( $seen, $pub ) ) : '—', 'از ' . number_format_i18n( $pub ) . ' صفحه منتشرشده', '', '', 'eye' );
+					self::tile( 'امتیاز AEO', $aeo && $aeo['pages'] ? number_format_i18n( (int) round( array_sum( wp_list_pluck( $aeo['pages'], 'score' ) ) / count( $aeo['pages'] ) ) ) : '—', 'آمادگی برای پاسخ‌های هوش مصنوعی', '', SSAI_Site::url( array( 'tab' => 'ai' ) ), 'ai' );
 					if ( isset( $psi['mobile']['scores']['performance'] ) ) {
 						$p = (int) $psi['mobile']['scores']['performance'];
-						self::tile( 'سرعت موبایل صفحه اصلی', number_format_i18n( $p ), 'PageSpeed', $p >= 90 ? 'good' : ( $p >= 50 ? 'warning' : 'error' ), SSAI_Report::url( $front ) );
+						self::tile( 'سرعت موبایل صفحه اصلی', number_format_i18n( $p ), 'PageSpeed', $p >= 90 ? 'good' : ( $p >= 50 ? 'warning' : 'error' ), SSAI_Report::url( $front ), 'speed' );
 					} else {
-						self::tile( 'سرعت موبایل صفحه اصلی', '—', 'اندازه‌گیری نشده', '', $front ? SSAI_Report::url( $front ) : '' );
+						self::tile( 'سرعت موبایل صفحه اصلی', '—', 'اندازه‌گیری نشده', '', $front ? SSAI_Report::url( $front ) : '', 'speed' );
 					}
-					self::tile( 'امنیت (Observatory)', is_array( $obs ) && ! empty( $obs['grade'] ) ? $obs['grade'] : '—', 'هدرهای امنیتی' );
+					self::tile( 'امنیت (Observatory)', is_array( $obs ) && ! empty( $obs['grade'] ) ? $obs['grade'] : '—', 'هدرهای امنیتی', '', '', 'shield' );
 					$st = SSAI_SEO::on( 'monitor404' ) ? SSAI_Redirects::log_stats( 7 ) : null;
-					self::tile( '۴۰۴ در ۷ روز اخیر', $st ? number_format_i18n( $st['urls'] ) : '—', $st ? number_format_i18n( $st['hits'] ) . ' بار باز شده' : 'مانیتور ۴۰۴ فعال نیست', $st && $st['urls'] ? 'warning' : '', admin_url( 'admin.php?page=' . SSAI_Redirects::SLUG . '&tab=log' ) );
-					self::tile( 'اعتبار دامنه', isset( $auth['opr'] ) && null !== $auth['opr'] ? number_format_i18n( $auth['opr'], 2 ) : '—', 'Open PageRank' . ( $risk ? ' — ریسک بک‌لینک ' . number_format_i18n( $risk['pct'] ) . '٪' : '' ), '', SSAI_Site::url() );
+					self::tile( '۴۰۴ در ۷ روز اخیر', $st ? number_format_i18n( $st['urls'] ) : '—', $st ? number_format_i18n( $st['hits'] ) . ' بار باز شده' : 'مانیتور ۴۰۴ فعال نیست', $st && $st['urls'] ? 'warning' : '', admin_url( 'admin.php?page=' . SSAI_Redirects::SLUG . '&tab=log' ), 'warn' );
+					self::tile( 'اعتبار دامنه', isset( $auth['opr'] ) && null !== $auth['opr'] ? number_format_i18n( $auth['opr'], 2 ) : '—', 'Open PageRank' . ( $risk ? ' — ریسک بک‌لینک ' . number_format_i18n( $risk['pct'] ) . '٪' : '' ), '', SSAI_Site::url(), 'link' );
 					?>
 				</div>
 			</section>
@@ -259,7 +273,6 @@ class SSAI_Dashboard {
 			<div class="ssai-dash-cols">
 				<section class="ssai-card">
 					<h2>کارهای بعدی</h2>
-					<?php $acts = self::actions(); ?>
 					<?php if ( ! $acts ) : ?>
 						<p>✓ کار فوری‌ای نیست.</p>
 					<?php else : ?>
@@ -281,8 +294,8 @@ class SSAI_Dashboard {
 							$pts[] = array( $d['key'], $d['clicks'] );
 							$imp[] = array( $d['key'], $d['impressions'] );
 						}
-						echo SSAI_Report::chart( $pts, 'کلیک', '#2271b1' ); // phpcs:ignore WordPress.Security.EscapeOutput -- SVG built with esc_* inside.
-						echo SSAI_Report::chart( $imp, 'نمایش', '#8c5cc9' ); // phpcs:ignore WordPress.Security.EscapeOutput
+						echo SSAI_Report::chart( $pts, 'کلیک', '#6366f1' ); // phpcs:ignore WordPress.Security.EscapeOutput -- SVG built with esc_* inside.
+						echo SSAI_Report::chart( $imp, 'نمایش', '#a78bfa' ); // phpcs:ignore WordPress.Security.EscapeOutput
 						$top = $gsc['pages'];
 						uasort(
 							$top,

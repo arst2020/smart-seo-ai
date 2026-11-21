@@ -353,7 +353,7 @@ class SSAI_Updater {
 		$msg     = isset( $_GET['msg'] ) ? sanitize_key( $_GET['msg'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
 		$auto    = in_array( $this->basename, (array) get_site_option( 'auto_update_plugins', array() ), true );
 		?>
-		<div class="wrap" dir="rtl">
+		<div class="wrap ssai" dir="rtl">
 			<h1>به‌روزرسانی افزونه</h1>
 			<?php if ( 'saved' === $msg ) : ?><div class="notice notice-success is-dismissible"><p>ذخیره شد و دوباره بررسی شد.</p></div><?php endif; ?>
 			<?php if ( 'checked' === $msg ) : ?><div class="notice notice-info is-dismissible"><p>دوباره بررسی شد.</p></div><?php endif; ?>
