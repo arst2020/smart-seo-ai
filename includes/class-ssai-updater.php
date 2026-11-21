@@ -24,6 +24,7 @@ class SSAI_Updater {
 	private $opt;
 	private $cache;
 	private $branch;
+	private $bad_token = false;
 
 	/**
 	 * @param string $file    Main plugin file.
@@ -52,6 +53,46 @@ class SSAI_Updater {
 		add_action( 'admin_menu', array( $this, 'menu' ), 99 );
 		add_action( 'admin_post_' . $this->page, array( $this, 'handle_form' ) );
 		add_action( 'load-update-core.php', array( $this, 'maybe_force' ) );
+		add_action( 'load-update-core.php', array( $this, 'sync' ), 20 );
+		add_action( 'load-plugins.php', array( $this, 'sync' ) );
+		add_action( 'load-update.php', array( $this, 'before_upgrade' ) );
+	}
+
+	/**
+	 * WordPress only re-reads the update list every 12 hours, so its saved list can still say
+	 * "no update" after a new version was published. Put our latest version into it now.
+	 */
+	public function sync( $force = false ) {
+		$r = $this->latest( true === $force );
+		if ( is_wp_error( $r ) ) {
+			return;
+		}
+		$t = get_site_transient( 'update_plugins' );
+		if ( ! is_object( $t ) ) {
+			$t = new stdClass();
+		}
+		$t->checked                    = isset( $t->checked ) && is_array( $t->checked ) ? $t->checked : array();
+		$t->checked[ $this->basename ] = $this->version;
+		$t->response                   = isset( $t->response ) && is_array( $t->response ) ? $t->response : array();
+		$t->no_update                  = isset( $t->no_update ) && is_array( $t->no_update ) ? $t->no_update : array();
+		$had                           = isset( $t->response[ $this->basename ]->new_version ) ? $t->response[ $this->basename ]->new_version : '';
+		$want                          = version_compare( $r['version'], $this->version, '>' ) ? $r['version'] : '';
+		if ( $had !== $want ) {
+			if ( ! isset( $t->last_checked ) ) {
+				$t->last_checked = time();
+			}
+			set_site_transient( 'update_plugins', $t ); // Our pre_set filter fills in the entry.
+		}
+	}
+
+	/** Clicking "update" re-checks GitHub first, so the newest version is installed. */
+	public function before_upgrade() {
+		$action = isset( $_GET['action'] ) ? sanitize_key( $_GET['action'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
+		$plugin = isset( $_GET['plugin'] ) ? wp_unslash( $_GET['plugin'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification,WordPress.Security.ValidatedSanitizedInput
+		$bulk   = isset( $_POST['checked'] ) ? (array) wp_unslash( $_POST['checked'] ) : array(); // phpcs:ignore WordPress.Security.NonceVerification,WordPress.Security.ValidatedSanitizedInput
+		if ( ( 'upgrade-plugin' === $action && $plugin === $this->basename ) || ( in_array( $action, array( 'update-selected', 'do-plugin-upgrade' ), true ) && in_array( $this->basename, $bulk, true ) ) ) {
+			$this->sync( true );
+		}
 	}
 
 	/* ---------------- GitHub ---------------- */
@@ -78,6 +119,16 @@ class SSAI_Updater {
 			return $res;
 		}
 		$code = (int) wp_remote_retrieve_response_code( $res );
+		if ( 401 === $code && isset( $headers['Authorization'] ) ) {
+			// Public repository + expired token: work without it (and do not send it with the download).
+			unset( $headers['Authorization'] );
+			$this->bad_token = true;
+			$res = wp_remote_get( $url, array( 'timeout' => 15, 'headers' => $headers ) );
+			if ( is_wp_error( $res ) ) {
+				return $res;
+			}
+			$code = (int) wp_remote_retrieve_response_code( $res );
+		}
 		$body = (string) wp_remote_retrieve_body( $res );
 		$data = json_decode( $body, true );
 		if ( 200 !== $code ) {
@@ -129,6 +180,9 @@ class SSAI_Updater {
 			}
 		}
 		set_site_transient( $this->cache, $best, 6 * HOUR_IN_SECONDS );
+		if ( $this->bad_token ) {
+			set_site_transient( $this->cache . '_badtok', 1, 6 * HOUR_IN_SECONDS );
+		}
 		return $best;
 	}
 
@@ -217,7 +271,7 @@ class SSAI_Updater {
 
 	/** Send the token with the zip download (GitHub API → codeload redirect). */
 	public function auth_download( $args, $url ) {
-		if ( $this->token() && 0 === strpos( $url, 'https://api.github.com/repos/' . $this->repo . '/zipball/' ) ) {
+		if ( $this->token() && ! $this->bad_token && ! get_site_transient( $this->cache . '_badtok' ) && 0 === strpos( $url, 'https://api.github.com/repos/' . $this->repo . '/zipball/' ) ) {
 			$args['headers']                  = isset( $args['headers'] ) ? (array) $args['headers'] : array();
 			$args['headers']['Authorization'] = 'Bearer ' . $this->token();
 			$args['headers']['Accept']        = 'application/vnd.github+json';
@@ -292,6 +346,9 @@ class SSAI_Updater {
 	public function render() {
 		$r       = $this->latest();
 		$has_new = ! is_wp_error( $r ) && version_compare( $r['version'], $this->version, '>' );
+		if ( $has_new ) {
+			$this->sync();
+		}
 		$const   = defined( 'SSAI_GITHUB_TOKEN' );
 		$msg     = isset( $_GET['msg'] ) ? sanitize_key( $_GET['msg'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
 		$auto    = in_array( $this->basename, (array) get_site_option( 'auto_update_plugins', array() ), true );
