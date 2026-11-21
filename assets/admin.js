@@ -444,6 +444,26 @@
 		}).catch(function (e) { busy(btn, false); holder.appendChild(el('div', { class: 'ssai-msg ssai-msg-error', text: e.message })); });
 	}
 
+	/* SEO review list: re-check all pages in batches of 5, then reload. */
+	document.addEventListener('click', function (e) {
+		var b = e.target.closest ? e.target.closest('#ssai-rescan') : null;
+		if (!b) return;
+		var prog = document.getElementById('ssai-rescan-progress');
+		b.disabled = true;
+		prog.textContent = ' در حال آماده‌سازی…';
+		request('rescan_ids', {}).then(function (d) {
+			var ids = d.ids, done = 0;
+			var next = function () {
+				if (done >= ids.length) { prog.textContent = ' ✓ تمام شد'; location.reload(); return; }
+				var part = ids.slice(done, done + 5);
+				prog.textContent = ' بررسی ' + Math.min(done + part.length, ids.length) + ' از ' + ids.length + '…';
+				request('rescan', { ids: part.join(',') }).then(function () { done += part.length; next(); })
+					.catch(function (er) { prog.textContent = ' ✗ ' + er.message + ' (بررسی‌شده‌ها ذخیره شده‌اند؛ دوباره بزنید)'; b.disabled = false; });
+			};
+			next();
+		}).catch(function (er) { prog.textContent = ' ✗ ' + er.message; b.disabled = false; });
+	});
+
 	/* Report page: canonical / viewport fix buttons (explain, confirm, apply, reload). */
 	document.addEventListener('click', function (e) {
 		var b = e.target.closest ? e.target.closest('.ssai-tech-fix') : null;

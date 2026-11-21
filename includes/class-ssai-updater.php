@@ -83,7 +83,7 @@ class SSAI_Updater {
 		if ( 200 !== $code ) {
 			$msg = isset( $data['message'] ) ? $data['message'] : 'HTTP ' . $code;
 			if ( 404 === $code ) {
-				$msg = $this->token() ? 'مخزن پیدا نشد یا توکن به آن دسترسی ندارد.' : 'مخزن خصوصی است؛ توکن گیت‌هاب لازم است.';
+				$msg = $this->token() ? 'مخزن پیدا نشد یا توکن به آن دسترسی ندارد.' : 'مخزن پیدا نشد؛ اگر مخزن خصوصی شده، توکن گیت‌هاب لازم است.';
 			} elseif ( 401 === $code ) {
 				$msg = 'توکن گیت‌هاب نامعتبر یا منقضی است.';
 			} elseif ( 403 === $code ) {
@@ -135,7 +135,7 @@ class SSAI_Updater {
 	/** Turn a failed request into a precise, actionable message. */
 	private function diagnose( $error ) {
 		if ( ! $this->token() ) {
-			return 'مخزن خصوصی است و توکن گیت‌هاب وارد نشده است.';
+			return 'ارتباط با گیت‌هاب برقرار نشد (اینترنت سرور یا محدودیت درخواست را بررسی کنید).';
 		}
 		$tok = $this->token();
 		if ( preg_match( '/\s/', $tok ) || strlen( $tok ) < 30 ) {
@@ -325,8 +325,8 @@ class SSAI_Updater {
 			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 				<input type="hidden" name="action" value="<?php echo esc_attr( $this->page ); ?>">
 				<?php wp_nonce_field( $this->page ); ?>
-				<h2>توکن گیت‌هاب</h2>
-				<p class="description">چون مخزن خصوصی است، وردپرس برای دیدن و دانلود نسخه‌ها به یک توکن «فقط‌خواندنی» نیاز دارد. در گیت‌هاب: Settings ← Developer settings ← Fine-grained tokens ← Generate new token؛ در Repository access فقط <code dir="ltr"><?php echo esc_html( $this->repo ); ?></code> را انتخاب کنید و در Permissions فقط <code dir="ltr">Contents: Read-only</code> را بدهید.</p>
+				<h2>توکن گیت‌هاب (اختیاری)</h2>
+				<p class="description">مخزن عمومی است و به‌روزرسانی بدون توکن کار می‌کند. توکن فقط برای بالا بردن محدودیت درخواست گیت‌هاب (یا اگر مخزن خصوصی شود) لازم است. در گیت‌هاب: Settings ← Developer settings ← Fine-grained tokens ← Generate new token؛ در Repository access فقط <code dir="ltr"><?php echo esc_html( $this->repo ); ?></code> را انتخاب کنید و در Permissions فقط <code dir="ltr">Contents: Read-only</code> را بدهید.</p>
 				<?php if ( $const ) : ?>
 					<p>✔ توکن در <code>wp-config.php</code> تعریف شده است (<code dir="ltr">SSAI_GITHUB_TOKEN</code>).</p>
 				<?php else : ?>

@@ -148,6 +148,12 @@ class SSAI_Report {
 			return;
 		}
 		$force = isset( $_GET['refresh'] ) && isset( $_GET['_wpnonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'ssai_refresh_' . $post_id );
+		// "Re-check": forget cached results and open the published page again.
+		$recheck = isset( $_GET['recheck'] ) && isset( $_GET['_wpnonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'ssai_recheck_' . $post_id );
+		if ( $recheck ) {
+			delete_transient( 'ssai_live_' . $post_id );
+			delete_transient( 'ssai_row_' . $post_id );
+		}
 
 		$r    = SSAI_Analyzer::rules( $post_id, true );
 		$d    = $r['data'];
@@ -169,6 +175,9 @@ class SSAI_Report {
 		$cls = $r['score'] >= 80 ? 'good' : ( $r['score'] >= 50 ? 'warning' : 'error' );
 		?>
 		<div class="wrap ssai ssai-report" dir="rtl">
+			<?php if ( $recheck ) : ?>
+				<div class="notice notice-success is-dismissible"><p><?php echo esc_html( 'صفحه دوباره بررسی شد (' . wp_date( 'H:i:s' ) . ').' ); ?></p></div>
+			<?php endif; ?>
 			<hr class="wp-header-end">
 			<?php
 			$notice = get_transient( 'ssai_gsc_notice_' . get_current_user_id() );
@@ -185,6 +194,7 @@ class SSAI_Report {
 					<a href="<?php echo esc_url( $url ); ?>" target="_blank" rel="noopener" dir="ltr" class="ssai-rep-url"><?php echo esc_html( urldecode( $url ) ); ?></a>
 				</div>
 				<div class="ssai-rep-actions">
+					<a class="button" href="<?php echo esc_url( self::url( $post_id, array( 'recheck' => 1, '_wpnonce' => wp_create_nonce( 'ssai_recheck_' . $post_id ) ) ) ); ?>" title="نتیجه‌های ذخیره‌شده پاک و صفحه منتشرشده دوباره باز می‌شود؛ مثلاً بعد از ویرایش در صفحه‌ساز یا پاک کردن کش">🔄 بررسی مجدد</a>
 					<a class="button button-primary" href="<?php echo esc_url( $edit ); ?>">ویرایش و اصلاح سئو<?php echo SSAI_Elementor::is_built( $post_id ) ? ' (المنتور)' : ''; ?></a>
 					<?php if ( SSAI_GSC::connected() ) : ?>
 						<a class="button" href="<?php echo esc_url( self::url( $post_id, array( 'refresh' => 1, '_wpnonce' => wp_create_nonce( 'ssai_refresh_' . $post_id ) ) ) ); ?>">به‌روزرسانی داده‌های گوگل</a>

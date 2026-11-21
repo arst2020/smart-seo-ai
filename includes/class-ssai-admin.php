@@ -20,7 +20,7 @@ class SSAI_Admin {
 		}
 
 		add_filter( 'wp_php_error_message', array( __CLASS__, 'ajax_fatal_message' ), 10, 2 );
-		foreach ( array( 'rules', 'ai_analyze', 'ai_rewrite', 'ai_fix', 'apply', 'undo', 'test', 'fetch_updates', 'tech_fix' ) as $a ) {
+		foreach ( array( 'rules', 'ai_analyze', 'ai_rewrite', 'ai_fix', 'apply', 'undo', 'test', 'fetch_updates', 'tech_fix', 'rescan_ids', 'rescan' ) as $a ) {
 			add_action( 'wp_ajax_ssai_' . $a, array( __CLASS__, 'ajax_' . $a ) );
 		}
 	}
@@ -318,7 +318,10 @@ class SSAI_Admin {
 		$base = remove_query_arg( array( 'orderby', 'order', 'paged' ) );
 		?>
 		<div class="wrap ssai" dir="rtl">
-			<h1>بررسی سئوی سایت</h1>
+			<h1>بررسی سئوی سایت
+				<button type="button" class="page-title-action" id="ssai-rescan" title="همه صفحه‌ها دوباره بررسی می‌شوند (صفحه منتشرشده هم دوباره باز می‌شود)">🔄 بررسی مجدد همه</button>
+				<span id="ssai-rescan-progress" class="description"></span>
+			</h1>
 			<?php if ( ! $gsc && current_user_can( 'manage_options' ) ) : ?>
 				<p><a href="<?php echo esc_url( admin_url( 'admin.php?page=smart-seo-ai-gsc' ) ); ?>">اتصال به سرچ کنسول یا وارد کردن فایل خروجی آن</a> برای دیدن کلیک و جایگاه هر صفحه در گوگل.</p>
 			<?php endif; ?>
@@ -450,6 +453,45 @@ class SSAI_Admin {
 			}
 		}
 		return wp_json_encode( array( 'success' => false, 'data' => array( 'message' => $text ) ), JSON_UNESCAPED_UNICODE );
+	}
+
+	/** "Re-check all" on the SEO review list: the ids to process (the browser sends them back in batches). */
+	public static function ajax_rescan_ids() {
+		check_ajax_referer( 'ssai', 'nonce' );
+		if ( ! current_user_can( 'edit_posts' ) ) {
+			wp_send_json_error( array( 'message' => 'دسترسی ندارید.' ), 403 );
+		}
+		$ids = get_posts(
+			array(
+				'post_type'      => self::post_types(),
+				'post_status'    => array_keys( self::status_labels() ),
+				'perm'           => 'editable',
+				'posts_per_page' => 2000,
+				'fields'         => 'ids',
+				'orderby'        => 'modified',
+				'order'          => 'DESC',
+			)
+		);
+		wp_send_json_success( array( 'ids' => $ids ) );
+	}
+
+	/** Re-check a batch: forget the cached row and the cached published-page fetch, then analyse again. */
+	public static function ajax_rescan() {
+		check_ajax_referer( 'ssai', 'nonce' );
+		$ids = isset( $_POST['ids'] ) ? array_slice( array_filter( array_map( 'absint', explode( ',', sanitize_text_field( wp_unslash( $_POST['ids'] ) ) ) ) ), 0, 5 ) : array();
+		foreach ( $ids as $id ) {
+			$post = get_post( $id );
+			if ( ! $post || ! current_user_can( 'edit_post', $id ) ) {
+				continue;
+			}
+			delete_transient( 'ssai_row_' . $id );
+			delete_transient( 'ssai_live_' . $id );
+			if ( 'publish' === $post->post_status ) {
+				SSAI_Analyzer::page_h1s( $id, true ); // Fresh look at the published page (H1, links, canonical, viewport).
+			}
+			self::scan_row( $post );
+		}
+		wp_send_json_success( array( 'done' => count( $ids ) ) );
 	}
 
 	/** Canonical / viewport fixes offered by the SEO check (after the user confirmed the explanation). */
