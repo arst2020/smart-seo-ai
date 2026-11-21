@@ -98,7 +98,55 @@ class SSAI_GSC_Import {
 	}
 
 	private static function digits( $s ) {
-		return strtr( (string) $s, array( '۰' => '0', '۱' => '1', '۲' => '2', '۳' => '3', '۴' => '4', '۵' => '5', '۶' => '6', '۷' => '7', '۸' => '8', '۹' => '9' ) );
+		return strtr( (string) $s, array( '۰' => '0', '۱' => '1', '۲' => '2', '۳' => '3', '۴' => '4', '۵' => '5', '۶' => '6', '۷' => '7', '۸' => '8', '۹' => '9', '٠' => '0', '١' => '1', '٢' => '2', '٣' => '3', '٤' => '4', '٥' => '5', '٦' => '6', '٧' => '7', '٨' => '8', '٩' => '9' ) );
+	}
+
+	/** Jalali (Solar Hijri) date → Gregorian [ y, m, d ]. */
+	private static function jalali_to_greg( $jy, $jm, $jd ) {
+		$jy  += 1595;
+		$days = -355668 + ( 365 * $jy ) + ( (int) ( $jy / 33 ) * 8 ) + (int) ( ( ( $jy % 33 ) + 3 ) / 4 ) + $jd + ( ( $jm < 7 ) ? ( $jm - 1 ) * 31 : ( ( $jm - 7 ) * 30 ) + 186 );
+		$gy   = 400 * (int) ( $days / 146097 );
+		$days %= 146097;
+		if ( $days > 36524 ) {
+			$gy  += 100 * (int) ( --$days / 36524 );
+			$days %= 36524;
+			if ( $days >= 365 ) {
+				++$days;
+			}
+		}
+		$gy  += 4 * (int) ( $days / 1461 );
+		$days %= 1461;
+		if ( $days > 365 ) {
+			$gy  += (int) ( ( $days - 1 ) / 365 );
+			$days = ( $days - 1 ) % 365;
+		}
+		$gd  = $days + 1;
+		$sal = array( 0, 31, ( ( 0 === $gy % 4 && 0 !== $gy % 100 ) || 0 === $gy % 400 ) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 );
+		for ( $gm = 1; $gm <= 12 && $gd > $sal[ $gm ]; $gm++ ) {
+			$gd -= $sal[ $gm ];
+		}
+		return array( $gy, $gm, $gd );
+	}
+
+	/**
+	 * Any date Search Console may write (2026-11-01, 2026/11/01, ۱۴۰۵/۰۸/۱۰, 01.11.2026, Nov 1, 2026)
+	 * → "Y-m-d", or '' when it is not a date.
+	 */
+	public static function norm_date( $v ) {
+		$v = trim( self::digits( $v ), " \t\"'\xE2\x80\x8E\xE2\x80\x8F" );
+		if ( preg_match( '#^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})#', $v, $m ) ) {
+			list( $y, $mo, $d ) = array( (int) $m[1], (int) $m[2], (int) $m[3] );
+			if ( $y < 1700 ) {
+				list( $y, $mo, $d ) = self::jalali_to_greg( $y, $mo, $d );
+			}
+		} elseif ( preg_match( '#^(\d{1,2})[./](\d{1,2})[./](\d{4})$#', $v, $m ) ) {
+			list( $y, $mo, $d ) = array( (int) $m[3], (int) $m[2], (int) $m[1] ); // Day first (European).
+		} elseif ( preg_match( '/[a-z]{3}/i', $v ) && false !== strtotime( $v ) && preg_match( '/\d{4}/', $v ) ) {
+			return gmdate( 'Y-m-d', strtotime( $v . ' UTC' ) );
+		} else {
+			return '';
+		}
+		return checkdate( $mo, $d, $y ) ? sprintf( '%04d-%02d-%02d', $y, $mo, $d ) : '';
 	}
 
 	/** Parse CSV text into rows (handles BOM, quotes, ; or , separators). */
@@ -124,11 +172,11 @@ class SSAI_GSC_Import {
 		$n = mb_strtolower( (string) $name );
 		$map = array(
 			'filters'  => array( 'filter', 'فیلتر' ),
-			'skip'     => array( 'countr', 'کشور', 'appearance', 'ظاهر' ),
-			'queries'  => array( 'quer', 'درخواست', 'پرس', 'جستجو', 'جست‌وجو' ),
-			'pages'    => array( 'page', 'صفحه' ),
-			'dates'    => array( 'date', 'تاریخ', 'chart' ),
-			'devices'  => array( 'device', 'دستگاه' ),
+			'skip'     => array( 'countr', 'کشور', 'appearance', 'ظاهر', 'länder', 'darstellung' ),
+			'dates'    => array( 'date', 'تاریخ', 'chart', 'نمودار', 'datum', 'daten', 'diagramm' ),
+			'queries'  => array( 'quer', 'درخواست', 'پرس', 'جستجو', 'جست‌وجو', 'suchanfrage', 'anfrage' ),
+			'pages'    => array( 'page', 'صفحه', 'seite' ),
+			'devices'  => array( 'device', 'دستگاه', 'gerät', 'geraet' ),
 		);
 		foreach ( $map as $type => $words ) {
 			foreach ( $words as $w ) {
@@ -146,7 +194,7 @@ class SSAI_GSC_Import {
 			return 'filters';
 		}
 		$first = self::digits( $sample[0][0] );
-		if ( preg_match( '/^\d{4}-\d{2}-\d{2}$/', $first ) ) {
+		if ( '' !== self::norm_date( $first ) ) {
 			return 'dates';
 		}
 		if ( preg_match( '#^https?://#i', $first ) ) {
@@ -267,8 +315,8 @@ class SSAI_GSC_Import {
 			}
 			if ( 'dates' === $type ) {
 				foreach ( $m as $r ) {
-					$r['key'] = self::digits( $r['key'] );
-					if ( preg_match( '/^\d{4}-\d{2}-\d{2}$/', $r['key'] ) ) {
+					$r['key'] = self::norm_date( $r['key'] );
+					if ( '' !== $r['key'] ) {
 						$data['dates'][] = $r;
 					}
 				}
@@ -477,7 +525,11 @@ class SSAI_GSC_Import {
 		$data['queries'] = array_slice( $data['queries'], 0, 1000 );
 		$data            = self::with_prev( $data, get_option( self::OPTION ) );
 		update_option( self::OPTION, $data, false );
-		return $notepre . sprintf( 'خروجی کل سایت وارد شد: %d صفحه، %d جستجو.', count( $data['pages'] ), count( $data['queries'] ) );
+		$msg = $notepre . sprintf( 'خروجی کل سایت وارد شد: %d صفحه، %d جستجو، %d روز.', count( $data['pages'] ), count( $data['queries'] ), count( $data['dates'] ) );
+		if ( count( $data['dates'] ) < 2 ) {
+			$msg .= ' ⚠ جدول تاریخ‌ها (Dates) در فایل پیدا نشد، پس نمودار کلیک و نمایش ساخته نمی‌شود. فایل ZIP کامل خروجی «Performance › Export › Download CSV» را بدون تغییر بارگذاری کنید.';
+		}
+		return $msg;
 	}
 
 	/* ------------------------------------------------------------ Getters used by the reports */
