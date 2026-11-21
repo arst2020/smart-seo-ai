@@ -101,7 +101,7 @@ class SSAI_Tech {
 
 	private static function guard() {
 		check_ajax_referer( 'ssai', 'nonce' );
-		if ( ! current_user_can( 'edit_others_posts' ) ) {
+		if ( ! current_user_can( 'ssai_site' ) ) {
 			wp_send_json_error( array( 'message' => 'دسترسی ندارید.' ), 403 );
 		}
 	}
@@ -239,7 +239,7 @@ class SSAI_Tech {
 			echo '<div class="notice notice-' . ( $all_bad ? 'error' : 'warning' ) . ' inline"><p>';
 			if ( $all_bad && ! get_option( 'ssai_viewport' ) ) {
 				echo esc_html( 'هیچ صفحه‌ای تگ viewport درست ندارد؛ یعنی قالب آن را نمی‌گذارد. ' );
-				if ( current_user_can( 'manage_options' ) ) {
+				if ( current_user_can( 'ssai_settings' ) ) {
 					echo '<button type="button" class="button button-primary ssai-tech-fix" data-post="0" data-kind="viewport" data-confirm="' . esc_attr( "تگ زیر از این به بعد در <head> همه صفحه‌های سایت اضافه می‌شود:\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n\nتنظیم سراسری است و در «تنظیمات سئو › عمومی» قابل خاموش کردن است. ادامه؟" ) . '">🔧 افزودن تگ viewport به همه صفحه‌ها</button> ';
 					echo '<span class="description">بعد «بررسی دوباره همه» را بزنید.</span>';
 				}

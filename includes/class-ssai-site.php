@@ -24,7 +24,7 @@ class SSAI_Site {
 	}
 
 	public static function menu() {
-		add_submenu_page( 'smart-seo-ai', 'نمای کلی سایت', 'نمای کلی سایت', 'edit_others_posts', self::SLUG, array( __CLASS__, 'page' ) );
+		add_submenu_page( 'smart-seo-ai', 'نمای کلی سایت', 'نمای کلی سایت', 'ssai_site', self::SLUG, array( __CLASS__, 'page' ) );
 	}
 
 	public static function url( $args = array() ) {
@@ -193,7 +193,7 @@ class SSAI_Site {
 
 	public static function handle_links_import() {
 		check_admin_referer( 'ssai_links_import' );
-		if ( ! current_user_can( 'manage_options' ) ) {
+		if ( ! current_user_can( 'ssai_site_actions' ) ) {
 			wp_die( 'دسترسی ندارید.' );
 		}
 		$tables = array();
@@ -602,7 +602,7 @@ class SSAI_Site {
 
 	public static function handle_action() {
 		check_admin_referer( 'ssai_site_action' );
-		if ( ! current_user_can( 'manage_options' ) ) {
+		if ( ! current_user_can( 'ssai_site_actions' ) ) {
 			wp_die( 'دسترسی ندارید.' );
 		}
 		$do = isset( $_POST['do'] ) ? sanitize_key( wp_unslash( $_POST['do'] ) ) : '';
@@ -726,7 +726,7 @@ class SSAI_Site {
 		$audit = self::cached_audit();
 		if ( ! $audit ) {
 			echo '<section class="ssai-card"><h2>بررسی کل سایت</h2><p>بررسی فنی و محتوایی همه صفحه‌ها هنوز انجام نشده است (برای سایت‌های بزرگ ممکن است یک تا دو دقیقه طول بکشد).</p>';
-			if ( current_user_can( 'manage_options' ) ) {
+			if ( current_user_can( 'ssai_site_actions' ) ) {
 				self::action_button( 'audit', 'شروع بررسی کل سایت', true );
 			}
 			echo '</section>';
@@ -743,7 +743,7 @@ class SSAI_Site {
 		$obs   = get_option( SSAI_Health::OPT_OBS );
 		$front = (int) get_option( 'page_on_front' );
 		$psi   = $front ? SSAI_Health::psi( $front ) : array();
-		$admin = current_user_can( 'manage_options' );
+		$admin = current_user_can( 'ssai_site_actions' );
 		?>
 		<section class="ssai-card">
 			<h2>اعتبار دامنه</h2>
@@ -852,7 +852,7 @@ class SSAI_Site {
 		</div>
 		<p class="description">بررسی کل سایت: <?php echo esc_html( wp_date( 'Y/m/d H:i', $audit['time'] ) ); ?>
 			<?php
-			if ( current_user_can( 'manage_options' ) ) {
+			if ( current_user_can( 'ssai_site_actions' ) ) {
 				self::action_button( 'audit', 'بررسی دوباره الان' );
 			}
 			?>
@@ -864,7 +864,7 @@ class SSAI_Site {
 		$l     = self::links();
 		$oprd  = get_option( self::OPT_OPR );
 		$opr   = is_array( $oprd ) && isset( $oprd['data'] ) ? $oprd['data'] : array();
-		$admin = current_user_can( 'manage_options' );
+		$admin = current_user_can( 'ssai_site_actions' );
 		?>
 		<section class="ssai-card">
 			<h2>وارد کردن بک‌لینک‌ها از سرچ کنسول</h2>

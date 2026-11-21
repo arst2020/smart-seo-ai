@@ -23,7 +23,7 @@ class SSAI_Report {
 	}
 
 	public static function menu() {
-		add_submenu_page( 'smart-seo-ai', 'سرچ کنسول', 'سرچ کنسول', 'manage_options', 'smart-seo-ai-gsc', array( __CLASS__, 'page_gsc' ) );
+		add_submenu_page( 'smart-seo-ai', 'سرچ کنسول', 'سرچ کنسول', 'ssai_reports', 'smart-seo-ai-gsc', array( __CLASS__, 'page_gsc' ) );
 		// Hidden page (no menu entry), opened from the links.
 		$hook = add_submenu_page( '', 'گزارش سئوی صفحه', 'گزارش سئوی صفحه', 'edit_posts', self::SLUG, array( __CLASS__, 'page_report' ) );
 		// Hidden pages get no admin title from WordPress (PHP 8 warning in admin-header.php).
@@ -562,7 +562,7 @@ class SSAI_Report {
 			<p>
 				<button type="button" class="button button-primary" id="ssai-psi-run-mobile">بررسی موبایل</button>
 				<button type="button" class="button" id="ssai-psi-run-desktop">بررسی دسکتاپ</button>
-				<?php if ( ! SSAI_Settings::get( 'psi_key' ) && current_user_can( 'manage_options' ) ) : ?>
+				<?php if ( ! SSAI_Settings::get( 'psi_key' ) && current_user_can( 'ssai_settings' ) ) : ?>
 					<span class="description">— برای سهمیه بیشتر، <a href="<?php echo esc_url( admin_url( 'admin.php?page=smart-seo-ai-settings' ) ); ?>">کلید رایگان PageSpeed</a> وارد کنید.</span>
 				<?php endif; ?>
 			</p>
@@ -619,7 +619,7 @@ class SSAI_Report {
 	/* ------------------------------------------------------------ Search Console settings page */
 
 	public static function page_gsc() {
-		if ( ! current_user_can( 'manage_options' ) ) {
+		if ( ! current_user_can( 'ssai_reports' ) ) {
 			return;
 		}
 		$o      = SSAI_GSC::get();

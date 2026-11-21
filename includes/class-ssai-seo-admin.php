@@ -18,7 +18,7 @@ class SSAI_SEO_Admin {
 	}
 
 	public static function menu() {
-		add_submenu_page( 'smart-seo-ai', 'تنظیمات سئو', 'تنظیمات سئو', 'manage_options', self::SLUG, array( __CLASS__, 'page' ) );
+		add_submenu_page( 'smart-seo-ai', 'تنظیمات سئو', 'تنظیمات سئو', 'ssai_seo_settings', self::SLUG, array( __CLASS__, 'page' ) );
 	}
 
 	public static function url( $tab = '' ) {
@@ -133,6 +133,10 @@ class SSAI_SEO_Admin {
 					}
 				}
 				$o['sitemap']['off'] = $off;
+				$o['sitemap']['video']     = empty( $in['video'] ) ? 0 : 1;
+				$o['sitemap']['news']      = empty( $in['news'] ) ? 0 : 1;
+				$o['sitemap']['news_pt']   = isset( $in['news_pt'] ) && is_array( $in['news_pt'] ) ? array_values( array_intersect( array_map( 'sanitize_key', $in['news_pt'] ), SSAI_Admin::post_types() ) ) : array();
+				$o['sitemap']['news_name'] = $txt( 'news_name' );
 				SSAI_Sitemap::bump();
 				break;
 			case 'robots':
@@ -416,6 +420,19 @@ class SSAI_SEO_Admin {
 				<p class="description">برچسب‌ها معمولاً صفحه‌های کم‌ارزش و تکراری می‌سازند؛ بهتر است خاموش باشند.</p>
 			</td></tr>
 			<tr><th scope="row">تصاویر</th><td><?php self::check( 'ssai[images]', ! empty( $s['images'] ), 'تصاویر هر صفحه هم در نقشه سایت بیاید (برای جستجوی تصویری گوگل)' ); ?></td></tr>
+			<tr><th scope="row">نقشه سایت ویدیو</th><td><?php self::check( 'ssai[video]', ! empty( $s['video'] ), 'ویدیوهای یوتیوب، ویمئو، آپارات و فایل‌های ویدیویی داخل صفحه‌ها در video-sitemap.xml بیاید' ); ?>
+				<p class="description"><a href="<?php echo esc_url( SSAI_Sitemap::url( 'video-sitemap.xml' ) ); ?>" target="_blank" rel="noopener" dir="ltr">video-sitemap.xml</a> — فقط وقتی ساخته می‌شود که صفحه‌ای ویدیو داشته باشد. برای ویمئو و آپارات، تصویر شاخص صفحه به‌عنوان پیش‌نمایش استفاده می‌شود.</p></td></tr>
+			<tr><th scope="row">نقشه سایت اخبار</th><td><?php self::check( 'ssai[news]', ! empty( $s['news'] ), 'news-sitemap.xml برای Google News ساخته شود (مطالب ۴۸ ساعت اخیر)' ); ?>
+				<p>
+				<?php
+				foreach ( SSAI_Admin::post_types() as $pt ) {
+					$obj = get_post_type_object( $pt );
+					echo '<label style="margin-left:12px"><input type="checkbox" name="ssai[news_pt][]" value="' . esc_attr( $pt ) . '" ' . checked( in_array( $pt, (array) $s['news_pt'], true ), true, false ) . '> ' . esc_html( $obj ? $obj->labels->name : $pt ) . '</label>';
+				}
+				?>
+				</p>
+				<p><label>نام نشریه <input type="text" name="ssai[news_name]" value="<?php echo esc_attr( $s['news_name'] ); ?>" placeholder="<?php echo esc_attr( get_bloginfo( 'name' ) ); ?>"></label></p>
+				<p class="description">فقط برای سایت‌های خبری لازم است؛ نام نشریه باید با نام ثبت‌شده در Google Publisher Center یکی باشد.</p></td></tr>
 			<tr><th scope="row"><label for="ssai-per">تعداد در هر فایل</label></th><td><input type="number" id="ssai-per" name="ssai[per_page]" value="<?php echo esc_attr( $s['per_page'] ); ?>" min="50" max="5000" class="small-text"></td></tr>
 			<tr><th scope="row"><label for="ssai-exc">حذف این شناسه‌ها</label></th><td><input type="text" id="ssai-exc" dir="ltr" class="regular-text" name="ssai[exclude]" value="<?php echo esc_attr( $s['exclude'] ); ?>" placeholder="12, 45"><p class="description">صفحه‌های noindex و رمزدار خودکار حذف می‌شوند.</p></td></tr>
 		</table>

@@ -470,7 +470,7 @@ class SSAI_Redirects {
 	/* ================================================================ Admin */
 
 	public static function menu() {
-		add_submenu_page( 'smart-seo-ai', 'ریدایرکت و ۴۰۴', 'ریدایرکت و ۴۰۴', 'manage_options', self::SLUG, array( __CLASS__, 'page' ) );
+		add_submenu_page( 'smart-seo-ai', 'ریدایرکت و ۴۰۴', 'ریدایرکت و ۴۰۴', 'ssai_redirects', self::SLUG, array( __CLASS__, 'page' ) );
 	}
 
 	private static function back( $msg, $type = 'success', $tab = '' ) {
@@ -488,7 +488,7 @@ class SSAI_Redirects {
 
 	public static function handle() {
 		check_admin_referer( 'ssai_redirect' );
-		if ( ! current_user_can( 'manage_options' ) ) {
+		if ( ! current_user_can( 'ssai_redirects' ) ) {
 			wp_die( 'دسترسی ندارید.' );
 		}
 		global $wpdb;

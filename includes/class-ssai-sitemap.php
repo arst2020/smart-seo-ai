@@ -62,6 +62,13 @@ class SSAI_Sitemap {
 		if ( 'sitemap_index.xml' === $p || 'sitemap.xml' === $p ) {
 			self::send( self::cached( 'index', 1 ) );
 		}
+		if ( preg_match( '/^(video|news|local)-sitemap\.xml$/', $p, $m ) ) {
+			$xml = self::cached( 'x_' . $m[1], 1 );
+			if ( null === $xml ) {
+				return;
+			}
+			self::send( $xml );
+		}
 		if ( preg_match( '/^([a-z0-9_\-]+?)-sitemap(\d*)\.xml$/', $p, $m ) ) {
 			$xml = self::cached( $m[1], max( 1, (int) $m[2] ) );
 			if ( null === $xml ) {
@@ -85,7 +92,14 @@ class SSAI_Sitemap {
 		$tk  = 'ssai_sm_' . md5( $key . '|' . $page . '|' . get_option( self::VER ) . '|' . home_url() );
 		$xml = get_transient( $tk );
 		if ( false === $xml ) {
-			$xml = 'index' === $key ? self::index() : self::urlset( $key, $page );
+			if ( 'index' === $key ) {
+				$xml = self::index();
+			} elseif ( 0 === strpos( $key, 'x_' ) ) {
+				$fn  = 'special_' . substr( $key, 2 );
+				$xml = self::$fn();
+			} else {
+				$xml = self::urlset( $key, $page );
+			}
 			if ( null !== $xml ) {
 				set_transient( $tk, $xml, 12 * HOUR_IN_SECONDS );
 			}
@@ -195,6 +209,11 @@ class SSAI_Sitemap {
 				}
 			}
 		}
+		foreach ( array( 'video', 'news', 'local' ) as $k ) {
+			if ( null !== self::cached( 'x_' . $k, 1 ) ) {
+				$x .= "\t<sitemap>\n\t\t<loc>" . esc_url( self::url( $k . '-sitemap.xml' ) ) . "</loc>\n\t</sitemap>\n";
+			}
+		}
 		return $x . '</sitemapindex>';
 	}
 
@@ -287,6 +306,132 @@ class SSAI_Sitemap {
 			}
 		}
 		return $x . '</urlset>';
+	}
+
+	/* ------------------------------------------------------------ Video / News / Local */
+
+	/** Videos embedded in a post: list of [ player|content, url, thumb, id ]. Cached per post until it changes. */
+	public static function videos( $id ) {
+		$mod = (string) get_post_field( 'post_modified_gmt', $id );
+		$c   = get_post_meta( $id, '_ssai_videos', true );
+		if ( is_array( $c ) && isset( $c['mod'] ) && $c['mod'] === $mod ) {
+			return $c['v'];
+		}
+		$html  = (string) get_post_field( 'post_content', $id ) . ' ' . str_replace( '\/', '/', (string) get_post_meta( $id, '_elementor_data', true ) );
+		$thumb = (int) get_post_thumbnail_id( $id ) ? (string) wp_get_attachment_image_url( (int) get_post_thumbnail_id( $id ), 'full' ) : '';
+		$v     = array();
+		if ( preg_match_all( '#(?:youtube(?:-nocookie)?\.com/(?:watch\?(?:[^"\'\s<]*?&(?:amp;)?)?v=|embed/|shorts/|v/)|youtu\.be/)([A-Za-z0-9_-]{11})#', $html, $m ) ) {
+			foreach ( array_unique( $m[1] ) as $yid ) {
+				$v[ 'yt' . $yid ] = array( 'player', 'https://www.youtube.com/embed/' . $yid, 'https://i.ytimg.com/vi/' . $yid . '/hqdefault.jpg', $yid );
+			}
+		}
+		if ( preg_match_all( '#(?:player\.)?vimeo\.com/(?:video/)?(\d{5,})#', $html, $m ) ) {
+			foreach ( array_unique( $m[1] ) as $vid ) {
+				$v[ 'vm' . $vid ] = array( 'player', 'https://player.vimeo.com/video/' . $vid, $thumb, $vid );
+			}
+		}
+		if ( preg_match_all( '#aparat\.com/(?:v/|video/video/embed/videohash/)([A-Za-z0-9]{3,12})#', $html, $m ) ) {
+			foreach ( array_unique( $m[1] ) as $aid ) {
+				$v[ 'ap' . $aid ] = array( 'player', 'https://www.aparat.com/video/video/embed/videohash/' . $aid . '/vt/frame', $thumb, $aid );
+			}
+		}
+		if ( preg_match_all( '#(https?://[^"\'\s<>\]]+?\.(?:mp4|webm|mov|m4v|ogv))#i', $html, $m ) ) {
+			$poster = preg_match( '#poster=["\']([^"\']+)#i', $html, $pm ) ? html_entity_decode( $pm[1] ) : $thumb;
+			foreach ( array_unique( $m[1] ) as $u ) {
+				$v[ 'f' . md5( $u ) ] = array( 'content', html_entity_decode( $u ), $poster, '' );
+			}
+		}
+		$v = array_slice( array_values( $v ), 0, 10 );
+		update_post_meta( $id, '_ssai_videos', array( 'mod' => $mod, 'v' => $v ) );
+		return $v;
+	}
+
+	private static function x( $s ) {
+		return htmlspecialchars( wp_strip_all_tags( html_entity_decode( (string) $s, ENT_QUOTES, 'UTF-8' ) ), ENT_XML1 | ENT_QUOTES, 'UTF-8' );
+	}
+
+	private static function special_video() {
+		$s = SSAI_SEO::get( 'sitemap' );
+		if ( empty( $s['video'] ) ) {
+			return null;
+		}
+		$fallback = (string) SSAI_SEO::get( 'og_image' );
+		$body     = '';
+		$n        = 0;
+		foreach ( self::sources() as $name => $kind ) {
+			if ( 'pt' !== $kind ) {
+				continue;
+			}
+			foreach ( self::posts( $name ) as $r ) {
+				$vids = self::videos( $r[0] );
+				if ( ! $vids ) {
+					continue;
+				}
+				$title = get_the_title( $r[0] );
+				$desc  = (string) SSAI_Content::get_meta_description( $r[0] );
+				if ( '' === trim( $desc ) ) {
+					$desc = wp_trim_words( preg_replace( '#https?://\S+#', '', wp_strip_all_tags( strip_shortcodes( (string) get_post_field( 'post_content', $r[0] ) ) ) ), 40, '…' );
+				}
+				$desc = '' !== trim( $desc ) ? $desc : $title;
+				$body .= "\t<url>\n\t\t<loc>" . esc_url( get_permalink( $r[0] ) ) . "</loc>\n";
+				foreach ( $vids as $vd ) {
+					$th = '' !== $vd[2] ? $vd[2] : $fallback;
+					if ( '' === $th ) {
+						continue; // Google requires a thumbnail.
+					}
+					$body .= "\t\t<video:video>\n\t\t\t<video:thumbnail_loc>" . esc_url( $th ) . "</video:thumbnail_loc>\n\t\t\t<video:title>" . self::x( $title ) . "</video:title>\n\t\t\t<video:description>" . self::x( mb_substr( $desc, 0, 2000 ) ) . "</video:description>\n";
+					$body .= 'player' === $vd[0] ? "\t\t\t<video:player_loc>" . esc_url( $vd[1] ) . "</video:player_loc>\n" : "\t\t\t<video:content_loc>" . esc_url( $vd[1] ) . "</video:content_loc>\n";
+					$body .= "\t\t\t<video:publication_date>" . esc_html( get_post_time( 'c', true, $r[0] ) ) . "</video:publication_date>\n\t\t</video:video>\n";
+					++$n;
+				}
+				$body .= "\t</url>\n";
+			}
+		}
+		if ( ! $n ) {
+			return null;
+		}
+		return self::head( '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">' ) . $body . '</urlset>';
+	}
+
+	private static function special_news() {
+		$s = SSAI_SEO::get( 'sitemap' );
+		if ( empty( $s['news'] ) ) {
+			return null;
+		}
+		$types = array_values( array_intersect( (array) $s['news_pt'], SSAI_Admin::post_types() ) );
+		if ( ! $types ) {
+			return null;
+		}
+		$name = '' !== trim( (string) $s['news_name'] ) ? $s['news_name'] : wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES );
+		$lang = strtolower( substr( get_locale(), 0, 2 ) );
+		$q    = get_posts(
+			array(
+				'post_type'      => $types,
+				'post_status'    => 'publish',
+				'posts_per_page' => 1000,
+				'date_query'     => array( array( 'after' => '48 hours ago', 'column' => 'post_date_gmt' ) ),
+				'has_password'   => false,
+				'fields'         => 'ids',
+				'lang'           => '',
+			)
+		);
+		$x = self::head( '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">' );
+		foreach ( $q as $id ) {
+			$rob = SSAI_SEO::post_robots( $id );
+			if ( $rob['noindex'] ) {
+				continue;
+			}
+			$x .= "\t<url>\n\t\t<loc>" . esc_url( get_permalink( $id ) ) . "</loc>\n\t\t<news:news>\n\t\t\t<news:publication>\n\t\t\t\t<news:name>" . self::x( $name ) . "</news:name>\n\t\t\t\t<news:language>" . esc_html( $lang ) . "</news:language>\n\t\t\t</news:publication>\n\t\t\t<news:publication_date>" . esc_html( get_post_time( 'c', true, $id ) ) . "</news:publication_date>\n\t\t\t<news:title>" . self::x( get_the_title( $id ) ) . "</news:title>\n\t\t</news:news>\n\t</url>\n";
+		}
+		// An empty news sitemap is valid; keep it listed so Search Console does not report it missing.
+		return $x . '</urlset>';
+	}
+
+	private static function special_local() {
+		if ( ! class_exists( 'SSAI_Local' ) || ! SSAI_Local::kml_points() ) {
+			return null;
+		}
+		return self::head( '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' ) . "\t<url>\n\t\t<loc>" . esc_url( SSAI_Local::kml_url() ) . "</loc>\n\t\t<lastmod>" . esc_html( gmdate( 'c', (int) get_option( self::VER, time() ) ) ) . "</lastmod>\n\t</url>\n</urlset>";
 	}
 
 	private static function xsl() {

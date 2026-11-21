@@ -708,7 +708,7 @@ class SSAI_AEO {
 
 	public static function handle_action() {
 		check_admin_referer( 'ssai_aeo_action' );
-		if ( ! current_user_can( 'manage_options' ) ) {
+		if ( ! current_user_can( 'ssai_site_actions' ) ) {
 			wp_die( 'دسترسی ندارید.' );
 		}
 		$do  = isset( $_POST['do'] ) ? sanitize_key( wp_unslash( $_POST['do'] ) ) : '';
@@ -777,7 +777,7 @@ class SSAI_AEO {
 
 	public static function render() {
 		$a     = self::cached();
-		$admin = current_user_can( 'manage_options' );
+		$admin = current_user_can( 'ssai_site_actions' );
 		?>
 		<section class="ssai-card">
 			<h2>بهینه‌سازی برای موتورهای پاسخ و هوش مصنوعی</h2>
@@ -1039,7 +1039,7 @@ class SSAI_AEO {
 
 	private static function render_llms( $a ) {
 		$l     = self::llms();
-		$admin = current_user_can( 'manage_options' );
+		$admin = current_user_can( 'ssai_site_actions' );
 		?>
 		<section class="ssai-card">
 			<h2>llms.txt (اختیاری)</h2>

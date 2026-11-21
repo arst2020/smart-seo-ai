@@ -35,14 +35,14 @@ class SSAI_Bulk_Schema {
 
 	public static function list_button( $views ) {
 		$pt = isset( $_GET['post_type'] ) ? sanitize_key( $_GET['post_type'] ) : 'post'; // phpcs:ignore WordPress.Security.NonceVerification
-		if ( current_user_can( 'edit_others_posts' ) ) {
+		if ( current_user_can( 'ssai_site' ) ) {
 			$views['ssai_bulk_schema'] = '<a href="' . esc_url( self::url( $pt ) ) . '" style="font-weight:600">🔎 بررسی دسته‌جمعی Schema</a>';
 		}
 		return $views;
 	}
 
 	public static function menu() {
-		$hook = add_submenu_page( '', 'بررسی دسته‌جمعی Schema', 'بررسی دسته‌جمعی Schema', 'edit_others_posts', self::SLUG, array( __CLASS__, 'page' ) );
+		$hook = add_submenu_page( '', 'بررسی دسته‌جمعی Schema', 'بررسی دسته‌جمعی Schema', 'ssai_site', self::SLUG, array( __CLASS__, 'page' ) );
 		add_action(
 			'load-' . $hook,
 			function () {
@@ -220,7 +220,7 @@ class SSAI_Bulk_Schema {
 	/* ------------------------------------------------------------ Screen */
 
 	public static function page() {
-		if ( ! current_user_can( 'edit_others_posts' ) ) {
+		if ( ! current_user_can( 'ssai_site' ) ) {
 			return;
 		}
 		$pt    = isset( $_GET['pt'] ) ? sanitize_key( $_GET['pt'] ) : 'page'; // phpcs:ignore WordPress.Security.NonceVerification
@@ -353,7 +353,7 @@ class SSAI_Bulk_Schema {
 
 	public static function handle() {
 		check_admin_referer( 'ssai_bulk_schema' );
-		if ( ! current_user_can( 'edit_others_posts' ) ) {
+		if ( ! current_user_can( 'ssai_site' ) ) {
 			wp_die( 'دسترسی ندارید.' );
 		}
 		$pt = isset( $_POST['pt'] ) ? sanitize_key( $_POST['pt'] ) : 'page';

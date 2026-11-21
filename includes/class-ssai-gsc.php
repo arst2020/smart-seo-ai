@@ -68,14 +68,14 @@ class SSAI_GSC {
 	}
 
 	/** Signed JWT for the service-account flow (RS256). */
-	public static function service_jwt( $sa ) {
+	public static function service_jwt( $sa, $scope = self::SCOPE ) {
 		$now     = time();
 		$header  = self::b64url( wp_json_encode( array( 'alg' => 'RS256', 'typ' => 'JWT' ) ) );
 		$claims  = self::b64url(
 			wp_json_encode(
 				array(
 					'iss'   => $sa['client_email'],
-					'scope' => self::SCOPE,
+					'scope' => $scope,
 					'aud'   => self::TOKEN,
 					'iat'   => $now,
 					'exp'   => $now + 3600,
@@ -137,7 +137,7 @@ class SSAI_GSC {
 	}
 
 	/** Decode a Google API response, turning errors into readable WP_Errors. */
-	private static function decode( $res ) {
+	public static function decode( $res ) {
 		if ( is_wp_error( $res ) ) {
 			return new WP_Error( 'ssai_gsc_http', 'اتصال به گوگل ناموفق بود: ' . $res->get_error_message() );
 		}
@@ -216,7 +216,7 @@ class SSAI_GSC {
 		return '';
 	}
 
-	private static function query( $body ) {
+	public static function query( $body ) {
 		$site = self::get( 'site' );
 		if ( '' === $site ) {
 			return new WP_Error( 'ssai_gsc_site', 'ویژگی (Property) سرچ کنسول انتخاب نشده است.' );
@@ -538,7 +538,7 @@ class SSAI_GSC {
 	}
 
 	public static function handle_save() {
-		if ( ! current_user_can( 'manage_options' ) ) {
+		if ( ! current_user_can( 'ssai_reports' ) ) {
 			wp_die( 'دسترسی ندارید.' );
 		}
 		check_admin_referer( 'ssai_gsc_save' );
@@ -616,7 +616,7 @@ class SSAI_GSC {
 	}
 
 	public static function handle_oauth_callback() {
-		if ( ! current_user_can( 'manage_options' ) ) {
+		if ( ! current_user_can( 'ssai_reports' ) ) {
 			wp_die( 'دسترسی ندارید.' );
 		}
 		$state = isset( $_GET['state'] ) ? sanitize_text_field( wp_unslash( $_GET['state'] ) ) : '';
@@ -663,7 +663,7 @@ class SSAI_GSC {
 	}
 
 	public static function handle_disconnect() {
-		if ( ! current_user_can( 'manage_options' ) ) {
+		if ( ! current_user_can( 'ssai_reports' ) ) {
 			wp_die( 'دسترسی ندارید.' );
 		}
 		check_admin_referer( 'ssai_gsc_disconnect' );

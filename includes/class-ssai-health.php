@@ -282,7 +282,7 @@ class SSAI_Health {
 
 	public static function ajax_indexnow_test() {
 		check_ajax_referer( 'ssai', 'nonce' );
-		if ( ! current_user_can( 'manage_options' ) ) {
+		if ( ! current_user_can( 'ssai_settings' ) ) {
 			wp_send_json_error( array( 'message' => 'دسترسی ندارید.' ), 403 );
 		}
 		$r = self::submit( array( home_url( '/' ) ) );

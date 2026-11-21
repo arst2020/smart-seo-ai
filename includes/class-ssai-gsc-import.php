@@ -377,7 +377,7 @@ class SSAI_GSC_Import {
 	public static function handle_upload() {
 		$post_id = isset( $_POST['post_id'] ) ? absint( $_POST['post_id'] ) : 0;
 		check_admin_referer( 'ssai_gsc_import' );
-		if ( $post_id ? ! current_user_can( 'edit_post', $post_id ) : ! current_user_can( 'manage_options' ) ) {
+		if ( $post_id ? ! current_user_can( 'edit_post', $post_id ) : ! current_user_can( 'ssai_reports' ) ) {
 			wp_die( 'دسترسی ندارید.' );
 		}
 		$zips = array();

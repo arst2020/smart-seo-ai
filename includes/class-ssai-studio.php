@@ -16,7 +16,7 @@ class SSAI_Studio {
 	const BRAND   = 'ssai_brand';
 	const CAL     = 'ssai_calendar';
 	const ITEM_PM = '_ssai_cs_item'; // On a created post: the studio item it came from.
-	const CAP     = 'edit_others_posts';
+	const CAP     = 'ssai_studio';
 
 	public static function init() {
 		add_action( 'init', array( __CLASS__, 'register' ) );

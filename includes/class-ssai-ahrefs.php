@@ -205,7 +205,7 @@ class SSAI_Ahrefs {
 
 	public static function handle_import() {
 		check_admin_referer( 'ssai_ahrefs_import' );
-		if ( ! current_user_can( 'manage_options' ) ) {
+		if ( ! current_user_can( 'ssai_reports' ) ) {
 			wp_die( 'دسترسی ندارید.' );
 		}
 		$files = array();
@@ -278,7 +278,7 @@ class SSAI_Ahrefs {
 
 	public static function handle_clear() {
 		check_admin_referer( 'ssai_ahrefs_clear' );
-		if ( current_user_can( 'manage_options' ) ) {
+		if ( current_user_can( 'ssai_reports' ) ) {
 			delete_option( self::OPT );
 		}
 		self::back( 'داده‌های Ahrefs پاک شد.' );
@@ -286,7 +286,7 @@ class SSAI_Ahrefs {
 
 	public static function ajax_alt() {
 		check_ajax_referer( 'ssai', 'nonce' );
-		if ( ! current_user_can( 'manage_options' ) || ! current_user_can( SSAI_Settings::get( 'apply_cap' ) ) ) {
+		if ( ! current_user_can( 'ssai_reports' ) || ! current_user_can( SSAI_Settings::get( 'apply_cap' ) ) ) {
 			wp_send_json_error( array( 'message' => 'دسترسی ندارید.' ), 403 );
 		}
 		$src = isset( $_POST['src'] ) ? esc_url_raw( wp_unslash( $_POST['src'] ) ) : '';
@@ -319,7 +319,7 @@ class SSAI_Ahrefs {
 
 	public static function ajax_redirect() {
 		check_ajax_referer( 'ssai', 'nonce' );
-		if ( ! current_user_can( 'manage_options' ) ) {
+		if ( ! current_user_can( 'ssai_reports' ) ) {
 			wp_send_json_error( array( 'message' => 'دسترسی ندارید.' ), 403 );
 		}
 		$from = isset( $_POST['from'] ) ? esc_url_raw( wp_unslash( $_POST['from'] ) ) : '';
@@ -439,7 +439,7 @@ class SSAI_Ahrefs {
 
 	public static function render() {
 		$d     = self::data();
-		$admin = current_user_can( 'manage_options' );
+		$admin = current_user_can( 'ssai_reports' );
 		wp_enqueue_script( 'ssai-ahrefs', SSAI_URL . 'assets/ahrefs.js', array( 'ssai-admin' ), SSAI_VERSION, true );
 		?>
 		<section class="ssai-card">

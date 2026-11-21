@@ -44,9 +44,9 @@ class SSAI_Admin {
 
 	public static function menu() {
 		add_menu_page( 'Smart SEO AI', 'Smart SEO AI', 'edit_posts', 'smart-seo-ai', array( 'SSAI_Dashboard', 'page' ), 'dashicons-search', 81 );
-		add_submenu_page( 'smart-seo-ai', 'داشبورد Smart SEO AI', 'داشبورد', 'edit_others_posts', 'smart-seo-ai', array( 'SSAI_Dashboard', 'page' ) );
-		add_submenu_page( 'smart-seo-ai', 'بررسی سئوی صفحه‌ها', 'بررسی صفحه‌ها', 'edit_posts', 'smart-seo-ai-pages', array( __CLASS__, 'page_scan' ) );
-		add_submenu_page( 'smart-seo-ai', 'تنظیمات هوش مصنوعی و سرویس‌ها', 'هوش مصنوعی و سرویس‌ها', 'manage_options', 'smart-seo-ai-settings', array( __CLASS__, 'page_settings' ) );
+		add_submenu_page( 'smart-seo-ai', 'داشبورد Smart SEO AI', 'داشبورد', 'ssai_site', 'smart-seo-ai', array( 'SSAI_Dashboard', 'page' ) );
+		add_submenu_page( 'smart-seo-ai', 'بررسی سئوی صفحه‌ها', 'بررسی صفحه‌ها', 'ssai_pages', 'smart-seo-ai-pages', array( __CLASS__, 'page_scan' ) );
+		add_submenu_page( 'smart-seo-ai', 'تنظیمات هوش مصنوعی و سرویس‌ها', 'هوش مصنوعی و سرویس‌ها', 'ssai_settings', 'smart-seo-ai-settings', array( __CLASS__, 'page_settings' ) );
 	}
 
 	public static function assets( $hook ) {
@@ -322,7 +322,7 @@ class SSAI_Admin {
 				<button type="button" class="page-title-action" id="ssai-rescan" title="همه صفحه‌ها دوباره بررسی می‌شوند (صفحه منتشرشده هم دوباره باز می‌شود)">🔄 بررسی مجدد همه</button>
 				<span id="ssai-rescan-progress" class="description"></span>
 			</h1>
-			<?php if ( ! $gsc && current_user_can( 'manage_options' ) ) : ?>
+			<?php if ( ! $gsc && current_user_can( 'ssai_reports' ) ) : ?>
 				<p><a href="<?php echo esc_url( admin_url( 'admin.php?page=smart-seo-ai-gsc' ) ); ?>">اتصال به سرچ کنسول یا وارد کردن فایل خروجی آن</a> برای دیدن کلیک و جایگاه هر صفحه در گوگل.</p>
 			<?php endif; ?>
 			<p>امتیاز با قوانین داخلی و بدون هوش مصنوعی محاسبه می‌شود. روی عنوان هر صفحه کلیک کنید تا گزارش کامل آن باز شود؛ روی عنوان هر ستون کلیک کنید تا جدول بر اساس آن مرتب شود.</p>
@@ -500,7 +500,7 @@ class SSAI_Admin {
 		$post_id = isset( $_POST['post_id'] ) ? absint( $_POST['post_id'] ) : 0;
 		$kind    = isset( $_POST['kind'] ) ? sanitize_key( wp_unslash( $_POST['kind'] ) ) : '';
 		if ( 'viewport' === $kind ) {
-			if ( ! current_user_can( 'manage_options' ) ) {
+			if ( ! current_user_can( 'ssai_settings' ) ) {
 				wp_send_json_error( array( 'message' => 'فقط مدیر سایت می‌تواند تنظیم سراسری viewport را روشن کند.' ), 403 );
 			}
 			update_option( 'ssai_viewport', 1, true );
@@ -525,7 +525,7 @@ class SSAI_Admin {
 	/* ---------------------------------------------------------------- Settings page */
 
 	public static function page_settings() {
-		if ( ! current_user_can( 'manage_options' ) ) {
+		if ( ! current_user_can( 'ssai_settings' ) ) {
 			return;
 		}
 		$o         = SSAI_Settings::get();
@@ -803,7 +803,7 @@ class SSAI_Admin {
 
 	public static function ajax_fetch_updates() {
 		check_ajax_referer( 'ssai', 'nonce' );
-		if ( ! current_user_can( 'manage_options' ) ) {
+		if ( ! current_user_can( 'ssai_settings' ) ) {
 			wp_send_json_error( array( 'message' => 'دسترسی ندارید.' ), 403 );
 		}
 		$r = SSAI_Guidelines::fetch();
@@ -875,7 +875,7 @@ class SSAI_Admin {
 
 	public static function ajax_test() {
 		check_ajax_referer( 'ssai', 'nonce' );
-		if ( ! current_user_can( 'manage_options' ) ) {
+		if ( ! current_user_can( 'ssai_settings' ) ) {
 			wp_send_json_error( array( 'message' => 'دسترسی ندارید.' ), 403 );
 		}
 		$chain = SSAI_Settings::chain();

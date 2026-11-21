@@ -93,6 +93,10 @@ class SSAI_SEO {
 				'images'   => 1,
 				'off'      => array( 'tax_post_tag', 'tax_product_tag' ), // Disabled post types / taxonomies ("pt_x", "tax_x").
 				'exclude'  => '',      // Post IDs, comma separated.
+				'video'    => 1,       // video-sitemap.xml from embedded YouTube / Vimeo / Aparat / video files.
+				'news'     => 0,       // news-sitemap.xml (Google News publishers).
+				'news_pt'  => array( 'post' ),
+				'news_name' => '',
 			),
 			'schema_pt'    => array(), // Default schema per post type.
 			'migrated'     => 0,
