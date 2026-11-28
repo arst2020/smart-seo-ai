@@ -278,6 +278,7 @@ class SSAI_Report {
 
 			<?php SSAI_Schema_Builder::render( $post_id ); ?>
 
+			<?php echo SSAI_History::page_box( $post_id ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped inside. ?>
 			<section class="ssai-card" id="ssai-adv">
 				<h2>تنظیمات پیشرفته سئو</h2>
 				<?php if ( isset( $_GET['saved'] ) && 'adv' === $_GET['saved'] ) : // phpcs:ignore WordPress.Security.NonceVerification ?>

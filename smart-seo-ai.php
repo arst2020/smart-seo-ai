@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Smart SEO AI Assistant
  * Description:       ساخت NFPSMART — افزونه کامل سئو با هوش مصنوعی رایگان: عنوان و متا، Schema (کسب‌وکار، مقاله، محصول ووکامرس)، نقشه سایت، ریدایرکت و ۴۰۴، Breadcrumb، بررسی محتوا، AEO/GEO، سرچ کنسول و بک‌لینک؛ سازگار با المنتور و WPML/Polylang؛ جایگزین Rank Math با انتقال اطلاعات. همه تغییرات فقط با تأیید مدیر.
- * Version:           2.8.2
+ * Version:           2.9.0
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            ARST (NFPSMART)
@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'SSAI_VERSION', '2.8.2' );
+define( 'SSAI_VERSION', '2.9.0' );
 define( 'SSAI_FILE', __FILE__ );
 define( 'SSAI_DIR', plugin_dir_path( __FILE__ ) );
 define( 'SSAI_URL', plugin_dir_url( __FILE__ ) );
@@ -58,6 +58,7 @@ require_once SSAI_DIR . 'includes/class-ssai-indexing.php';
 require_once SSAI_DIR . 'includes/class-ssai-rank.php';
 require_once SSAI_DIR . 'includes/class-ssai-ui.php';
 require_once SSAI_DIR . 'includes/class-ssai-changelog.php';
+require_once SSAI_DIR . 'includes/class-ssai-history.php';
 
 register_activation_hook(
 	__FILE__,
@@ -68,7 +69,7 @@ register_activation_hook(
 	}
 );
 register_deactivation_hook( __FILE__, array( 'SSAI_Guidelines', 'deactivate' ) );
-register_deactivation_hook( __FILE__, function () { wp_clear_scheduled_hook( 'ssai_rank_daily' ); } );
+register_deactivation_hook( __FILE__, function () { wp_clear_scheduled_hook( 'ssai_rank_daily' ); wp_clear_scheduled_hook( 'ssai_history_daily' ); } );
 
 add_action(
 	'plugins_loaded',
@@ -104,6 +105,7 @@ add_action(
 		SSAI_Rank::init();
 		SSAI_UI::init();
 		SSAI_Changelog::init();
+		SSAI_History::init();
 		new SSAI_Updater( SSAI_FILE, 'arst2020/smart-seo-ai', SSAI_VERSION, 'smart-seo-ai' );
 	}
 );

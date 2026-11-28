@@ -296,6 +296,7 @@ class SSAI_Dashboard {
 						<span class="ssai-hero-chip">آخرین بررسی کل سایت: <?php echo esc_html( human_time_diff( $audit['time'] ) ); ?> پیش</span>
 					<?php endif; ?>
 					<a class="ssai-hero-chip" href="<?php echo esc_url( admin_url( 'admin.php?page=smart-seo-ai-pages' ) ); ?>">🔄 بررسی صفحه‌ها</a>
+					<a class="ssai-hero-chip" href="<?php echo esc_url( admin_url( 'admin.php?page=' . SSAI_History::SLUG ) ); ?>">📈 تاریخچه سئو</a>
 				</div>
 			</section>
 
