@@ -204,7 +204,7 @@ class SSAI_Dashboard {
 		if ( $ah ) {
 			$au = SSAI_Site::url( array( 'tab' => 'ahrefs' ) );
 			if ( $ah['rd'] && $ah['rd'][1] && $ah['rd'][0] > 5 * $ah['rd'][1] ) {
-				$a[] = array( 2, sprintf( 'رشد ناگهانی بک‌لینک در Ahrefs (%s دامنه، ۶ ماه پیش %s)؛ احتمال لینک‌های اسپم خودکار.', number_format_i18n( $ah['rd'][0] ), number_format_i18n( $ah['rd'][1] ) ), $au, 'بررسی' );
+				$a[] = array( 2, 'دامنه‌های لینک‌دهنده (گزارش Ahrefs) در ۶ ماه اخیر به‌طور غیرعادی زیاد شده‌اند؛ احتمال لینک‌های اسپم خودکار.', $au, 'بررسی' );
 			}
 			if ( $ah['broken'] ) {
 				$a[] = array( 2, sprintf( '%s لینک داخلی خراب (گزارش Ahrefs).', number_format_i18n( $ah['broken'] ) ), $au, 'اصلاح' );

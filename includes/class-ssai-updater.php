@@ -167,7 +167,20 @@ class SSAI_Updater {
 			'zip'     => 'https://api.github.com/repos/' . $this->repo . '/zipball/' . $ref,
 			'notes'   => array(),
 		);
-		if ( version_compare( $best['version'], $this->version, '>' ) ) {
+		if ( version_compare( $best['version'], $this->version, '>' ) && class_exists( 'SSAI_Changelog' ) ) {
+			// Persian change list from readme.txt of the new version.
+			$readme = $this->api( '/contents/readme.txt?ref=' . $ref, true );
+			if ( ! is_wp_error( $readme ) ) {
+				foreach ( SSAI_Changelog::parse( (string) $readme ) as $v => $c ) {
+					if ( version_compare( $v, $this->version, '>' ) ) {
+						foreach ( $c['items'] as $it ) {
+							$best['notes'][] = $v . ' — ' . $it;
+						}
+					}
+				}
+			}
+		}
+		if ( ! $best['notes'] && version_compare( $best['version'], $this->version, '>' ) ) {
 			// Change list = commits whose subject starts with a newer version ("2.6.0: …").
 			$commits = $this->api( '/commits?sha=' . $ref . '&per_page=40' );
 			if ( ! is_wp_error( $commits ) ) {

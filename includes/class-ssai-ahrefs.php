@@ -519,7 +519,7 @@ class SSAI_Ahrefs {
 		echo '<section class="ssai-card" id="ssai-ah-history"><h2>روند دامنه‌های ارجاع‌دهنده (Ahrefs)</h2>';
 		echo SSAI_Report::chart( array_slice( $pts, -80 ), 'دامنه‌های ارجاع‌دهنده', '#d63638' ); // phpcs:ignore WordPress.Security.EscapeOutput
 		if ( $s['rd'] && $s['rd'][1] && $s['rd'][0] > 5 * $s['rd'][1] ) {
-			echo '<p class="ssai-msg ssai-msg-error"><strong>رشد ناگهانی:</strong> در حدود ۶ ماه دامنه‌های لینک‌دهنده از ' . esc_html( number_format_i18n( $s['rd'][1] ) ) . ' به ' . esc_html( number_format_i18n( $s['rd'][0] ) ) . ' رسیده است. اگر خودتان لینک نخریده‌اید یا کمپین لینک‌سازی نداشته‌اید، این الگوی معمول لینک‌های اسپم خودکار (یا حمله سئوی منفی) است. گوگل بیشتر این لینک‌ها را نادیده می‌گیرد؛ در Ahrefs به Site Explorer › Referring domains بروید و نمونه‌ها را ببینید. Disavow فقط وقتی لازم است که Manual action گرفته باشید.</p>';
+			echo '<p class="ssai-msg ssai-msg-error"><strong>رشد ناگهانی:</strong> تعداد دامنه‌های لینک‌دهنده در حدود ۶ ماه بیش از ۵ برابر شده است. اگر خودتان لینک نخریده‌اید یا کمپین لینک‌سازی نداشته‌اید، این الگوی معمول لینک‌های اسپم خودکار (یا حمله سئوی منفی) است. گوگل بیشتر این لینک‌ها را نادیده می‌گیرد؛ در Ahrefs به Site Explorer › Referring domains بروید و نمونه‌ها را ببینید. Disavow فقط وقتی لازم است که Manual action گرفته باشید.</p>';
 		}
 		echo '</section>';
 	}
