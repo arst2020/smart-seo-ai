@@ -40,7 +40,8 @@ class SSAI_AEO {
 			'Perplexity-User'    => array( 'Perplexity-User', 'باز کردن صفحه به درخواست کاربر Perplexity', 'search' ),
 			'GPTBot'             => array( 'GPTBot', 'آموزش مدل‌های OpenAI', 'training' ),
 			'ClaudeBot'          => array( 'ClaudeBot', 'آموزش مدل‌های Anthropic', 'training' ),
-			'Google-Extended'    => array( 'Google-Extended', 'آموزش Gemini (روی رتبه و AI Overviews اثری ندارد)', 'training' ),
+			'Google-Extended'    => array( 'Google-Extended', 'آموزش Gemini و پاسخ‌های Gemini/Vertex AI (grounding) — روی رتبه گوگل و AI Overviews اثری ندارد؛ خروج از AI Overviews/AI Mode فقط از تنظیم «Search generative AI control» در سرچ کنسول', 'training' ),
+			'__usage_ai-training' => array( '__usage_ai-training', 'ترجیح مشترک «استفاده برای آموزش AI» (پیش‌نویس IETF؛ مایکروسافت و OpenAI؛ گوگل از ۲۰۲۷). فقط گروه صریح حساب می‌شود، نه *', 'training' ),
 			'Applebot-Extended'  => array( 'Applebot-Extended', 'آموزش Apple Intelligence', 'training' ),
 			'CCBot'              => array( 'CCBot', 'Common Crawl – داده عمومی که بسیاری از مدل‌ها و Open PageRank از آن استفاده می‌کنند', 'training' ),
 			'meta-externalagent' => array( 'meta-externalagent', 'آموزش مدل‌های Meta', 'training' ),
@@ -347,6 +348,18 @@ class SSAI_AEO {
 			'PerplexityBot' => 'Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; PerplexityBot/1.0; +https://perplexity.ai/perplexitybot)',
 		);
 		foreach ( self::bots() as $token => $b ) {
+			if ( 0 === strpos( $token, '__' ) ) {
+				// Usage-preference token: only an explicit group counts (wildcard groups are not a preference).
+				$explicit = array_filter(
+					$groups,
+					function ( $g ) use ( $token ) {
+						return in_array( strtolower( $token ), $g['agents'], true );
+					}
+				);
+				list( $ok, $src ) = $explicit ? self::robots_allowed( $explicit, $token, $base ? $base : '/' ) : array( true, 'none' );
+				$out['bots'][ $token ] = array( 'ok' => $ok, 'src' => $src, 'fw' => null );
+				continue;
+			}
 			list( $ok, $src ) = self::robots_allowed( $groups, $token, $base ? $base : '/' );
 			$fw               = null;
 			if ( isset( $uas[ $token ] ) ) {
@@ -807,7 +820,7 @@ class SSAI_AEO {
 		$search = 0;
 		$sallow = 0;
 		foreach ( $a['bots'] as $t => $b ) {
-			if ( 'training' !== $bots[ $t ][2] ) {
+			if ( isset( $bots[ $t ] ) && 'training' !== $bots[ $t ][2] ) {
 				$search++;
 				if ( $b['ok'] && ( null === $b['fw'] || $b['fw'] < 400 || $a['home_code'] >= 400 ) ) {
 					$sallow++;
@@ -841,6 +854,9 @@ class SSAI_AEO {
 				<tbody>
 				<?php
 				foreach ( $bots as $t => $b ) {
+					if ( ! isset( $a['bots'][ $t ] ) ) {
+						continue; // Added after the last scan.
+					}
 					$r = $a['bots'][ $t ];
 					if ( $r['ok'] ) {
 						$rb = '<span class="ssai-pos ssai-risk-good">مجاز</span>' . ( 'own' === $r['src'] ? ' <span class="description">(قانون اختصاصی)</span>' : '' );

@@ -9,6 +9,62 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class SSAI_Dashboard {
 
+	/**
+	 * Google's advice: compare the full week after a core update finished with the week before it began.
+	 *
+	 * @param array $items Ranking updates (title, date, end).
+	 * @param array $dates Search Console daily rows (key = Y-m-d, clicks, impressions).
+	 */
+	private static function update_impact( $items, $dates ) {
+		$core = null;
+		foreach ( $items as $it ) {
+			if ( preg_match( '/core update/i', $it['title'] ) ) {
+				$core = $it;
+				break;
+			}
+		}
+		if ( ! $core || '' === $core['date'] ) {
+			return '';
+		}
+		if ( empty( $core['end'] ) ) {
+			return 'آپدیت هسته «' . esc_html( $core['title'] ) . '» هنوز در حال اجراست؛ تا پایان آن و یک هفته بعدش تغییر بزرگی در سایت ندهید.';
+		}
+		$b0    = gmdate( 'Y-m-d', strtotime( $core['date'] . ' -7 days' ) );
+		$b1    = gmdate( 'Y-m-d', strtotime( $core['date'] . ' -1 day' ) );
+		$a0    = gmdate( 'Y-m-d', strtotime( $core['end'] . ' +1 day' ) );
+		$a1    = gmdate( 'Y-m-d', strtotime( $core['end'] . ' +7 days' ) );
+		$ready = gmdate( 'Y-m-d', strtotime( $a1 . ' +3 days' ) ); // Search Console data lags 2–3 days.
+		if ( gmdate( 'Y-m-d' ) < $ready ) {
+			return 'اثر «' . esc_html( $core['title'] ) . '»: طبق توصیه گوگل هفته ' . esc_html( $a0 . ' تا ' . $a1 ) . ' با هفته ' . esc_html( $b0 . ' تا ' . $b1 ) . ' مقایسه می‌شود؛ از ' . esc_html( $ready ) . ' به بعد خروجی تازه سرچ کنسول را وارد کنید.';
+		}
+		$sum = function ( $from, $to ) use ( $dates ) {
+			$c = 0;
+			$i = 0;
+			$n = 0;
+			foreach ( $dates as $d ) {
+				if ( isset( $d['key'] ) && $d['key'] >= $from && $d['key'] <= $to ) {
+					$c += (int) $d['clicks'];
+					$i += (int) $d['impressions'];
+					++$n;
+				}
+			}
+			return array( $c, $i, $n );
+		};
+		list( $bc, $bi, $bn ) = $sum( $b0, $b1 );
+		list( $ac, $ai, $an ) = $sum( $a0, $a1 );
+		if ( $bn < 5 || $an < 5 ) {
+			return 'برای سنجش اثر «' . esc_html( $core['title'] ) . '» خروجی سرچ کنسولی وارد کنید که بازه ' . esc_html( $b0 . ' تا ' . $a1 ) . ' را پوشش دهد.';
+		}
+		$pct = function ( $a, $b ) {
+			if ( ! $b ) {
+				return '—';
+			}
+			$v = ( $a - $b ) / $b * 100;
+			return '<strong style="color:' . ( $v >= 0 ? 'var(--s-good,#008a20)' : 'var(--s-bad,#b32d2e)' ) . '">' . ( $v >= 0 ? '▲ ' : '▼ ' ) . esc_html( number_format_i18n( abs( $v ), 1 ) ) . '٪</strong>';
+		};
+		return 'اثر «' . esc_html( $core['title'] ) . '» (هفته بعد از پایان در مقایسه با هفته قبل از شروع): کلیک ' . $pct( $ac, $bc ) . ' — نمایش ' . $pct( $ai, $bi ) . '.';
+	}
+
 	private static function tile( $label, $value, $sub = '', $cls = '', $link = '', $icon = '' ) {
 		echo '<div class="ssai-tile' . ( $cls ? ' ssai-tile-' . esc_attr( $cls ) : '' ) . '">' . SSAI_UI::icon( $icon ) . '<span class="ssai-tile-label">' . esc_html( $label ) . '</span><strong>' . esc_html( $value ) . '</strong>' . ( $sub ? '<span class="description">' . wp_kses_post( $sub ) . '</span>' : '' ) . ( $link ? '<a class="ssai-tile-link" href="' . esc_url( $link ) . '">جزئیات ←</a>' : '' ) . '</div>';
 	}
@@ -363,9 +419,14 @@ class SSAI_Dashboard {
 					if ( ! empty( $up['items'] ) ) {
 						echo '<h3>آخرین به‌روزرسانی‌های گوگل</h3><ul class="ssai-plist">';
 						foreach ( array_slice( $up['items'], 0, 4 ) as $it ) {
-							echo '<li>' . esc_html( $it['title'] ) . ' <span class="description" dir="ltr">' . esc_html( $it['date'] ) . '</span></li>';
+							$range = $it['date'] . ( ! empty( $it['end'] ) ? ' → ' . $it['end'] : ' (در حال اجرا)' );
+							echo '<li>' . esc_html( $it['title'] ) . ' <span class="description" dir="ltr">' . esc_html( $range ) . '</span></li>';
 						}
 						echo '</ul>';
+						$imp = self::update_impact( $up['items'], isset( $gsc ) && is_array( $gsc ) && ! empty( $gsc['dates'] ) ? $gsc['dates'] : array() );
+						if ( $imp ) {
+							echo '<p class="description">' . wp_kses_post( $imp ) . '</p>';
+						}
 					}
 					?>
 				</section>

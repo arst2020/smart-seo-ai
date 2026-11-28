@@ -137,7 +137,7 @@ class SSAI_Bulk_Schema {
 		}
 
 		if ( $qs >= 3 && ! in_array( 'FAQPage', $custom, true ) && ! get_post_meta( $id, SSAI_AEO::META_FAQ, true ) ) {
-			$r['issues'][] = array( 'info', sprintf( '%d تیتر سؤالی در متن هست ولی FAQ ساختاریافته ندارد؛ از گزارش صفحه › AEO بسازید.', $qs ) );
+			$r['issues'][] = array( 'info', sprintf( '%d تیتر سؤالی در متن هست ولی FAQ ساختاریافته ندارد؛ از گزارش صفحه › AEO بسازید. (گوگل از مه ۲۰۲۶ نتیجه غنی FAQ نشان نمی‌دهد؛ برای موتورهای پاسخ‌گو و خوانایی مفید است.)', $qs ) );
 		}
 		if ( 'Service' === ( '' !== $r['suggest'] ? $r['suggest'] : $cur ) && preg_match( '/پزشک|دندان|درمان|جراحی|ایمپلنت|کلینیک|clinic|dental|medical/iu', $title ) && ! in_array( 'MedicalProcedure', $custom, true ) ) {
 			$r['issues'][] = array( 'info', 'خدمت پزشکی است؛ برای دقت بیشتر MedicalProcedure را با «سازنده Schema» همین صفحه بسازید.' );

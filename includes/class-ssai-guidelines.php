@@ -51,7 +51,10 @@ class SSAI_Guidelines {
 				'- Image alt text describes what the image shows (plus the topic when natural), never a list of keywords.',
 				'- URLs: short, readable, descriptive words separated by hyphens.',
 				'- Internal links with descriptive anchor text; link to authoritative sources when useful.',
-				'- Structured data must match visible content. FAQ rich results are only shown for well-known government and health websites; HowTo rich results are discontinued.',
+				'- Structured data must match visible content. FAQ rich results are no longer shown in Google (deprecated May 2026), HowTo and practice-problem rich results are discontinued; FAQ markup may still help other answer engines but promises no rich result.',
+				'- Reviews and ratings must be genuine; never invent reviews or mark up fake or undisclosed incentivized reviews.',
+				'- Google spam policies apply to AI features too; never suggest back-button hijacking, doorway pages, scaled low-value content or keyword stuffing.',
+				'- Google Search does not use llms.txt; for AI Overviews / AI Mode the normal Search signals apply (helpful, original, people-first content, clear structure, crawlable pages).',
 				'- Page experience: mobile friendly, fast (Core Web Vitals: LCP, INP, CLS), HTTPS, no intrusive pop-ups.',
 				'- Local businesses: consistent name, address and phone (NAP), service area and opening hours; keep the Google Business Profile in sync.',
 			)
@@ -105,9 +108,11 @@ class SSAI_Guidelines {
 				continue;
 			}
 			$begin   = isset( $inc['begin'] ) ? strtotime( (string) $inc['begin'] ) : 0;
+			$end     = ! empty( $inc['end'] ) ? strtotime( (string) $inc['end'] ) : 0;
 			$items[] = array(
 				'title' => sanitize_text_field( $title ),
 				'date'  => $begin ? gmdate( 'Y-m-d', $begin ) : '',
+				'end'   => $end ? gmdate( 'Y-m-d', $end ) : '',
 			);
 		}
 		usort(
@@ -116,7 +121,7 @@ class SSAI_Guidelines {
 				return strcmp( $b['date'], $a['date'] );
 			}
 		);
-		$out['items'] = array_slice( $items, 0, 8 );
+		$out['items'] = array_slice( $items, 0, 12 );
 		$out['error'] = '';
 		update_option( self::OPTION_UPDATES, $out, false );
 		return true;

@@ -265,6 +265,20 @@ class SSAI_Rank {
 			$y  = $sy( $g );
 			$o .= '<line x1="' . $pad . '" x2="' . ( $w - $pad ) . '" y1="' . $y . '" y2="' . $y . '" stroke="#dcdcde" stroke-dasharray="3 3"/><text x="4" y="' . ( $y + 4 ) . '" font-size="11" fill="#646970">' . $g . '</text>';
 		}
+		// Google ranking updates as shaded bands (from the Search Status Dashboard feed).
+		$from = gmdate( 'Y-m-d', $t0 );
+		foreach ( (array) SSAI_Guidelines::updates()['items'] as $u ) {
+			if ( empty( $u['date'] ) ) {
+				continue;
+			}
+			$end = ! empty( $u['end'] ) ? $u['end'] : gmdate( 'Y-m-d' );
+			if ( $end < $from ) {
+				continue;
+			}
+			$x1 = max( $pad, $sx( max( $u['date'], $from ) ) );
+			$x2 = min( $w - $pad, max( $x1 + 2, $sx( $end ) ) );
+			$o .= '<rect x="' . $x1 . '" y="' . ( $pad / 2 ) . '" width="' . round( $x2 - $x1, 1 ) . '" height="' . ( $h - 1.5 * $pad ) . '" fill="#f59e0b" fill-opacity=".12"><title>' . esc_html( $u['title'] . ' — ' . $u['date'] . ( ! empty( $u['end'] ) ? ' تا ' . $u['end'] : '' ) ) . '</title></rect>';
+		}
 		$pts = array();
 		foreach ( $rows as $r ) {
 			$pts[] = $sx( $r[0] ) . ',' . $sy( $r[1] );
@@ -418,7 +432,7 @@ class SSAI_Rank {
 				<div class="ssai-card">
 					<h2>«<?php echo esc_html( $sel ); ?>» — ۹۰ روز اخیر <a class="button" style="float:left" href="<?php echo esc_url( $base ); ?>">بستن</a></h2>
 					<?php echo self::chart( $rows[ $sel ]['h'], 90 ); // phpcs:ignore WordPress.Security.EscapeOutput -- built with esc_* ?>
-					<p class="description">محور عمودی جایگاه است (۱ = بالاترین). روی هر نقطه بروید تا جزئیات آن روز را ببینید.</p>
+					<p class="description">محور عمودی جایگاه است (۱ = بالاترین). روی هر نقطه بروید تا جزئیات آن روز را ببینید. نوارهای نارنجی، بازه به‌روزرسانی‌های رسمی رتبه‌بندی گوگل‌اند.</p>
 				</div>
 			<?php endif; ?>
 
