@@ -522,9 +522,38 @@ class SSAI_Site {
 				$broken[] = $u;
 			}
 		}
-		$orphans = array();
+		// Pages with no link inside other pages' content. Many of them are still reachable for Google
+		// through the menu, blog / category archives or theme widgets, so split them.
+		$menu = array();
+		foreach ( wp_get_nav_menus() as $nm ) {
+			foreach ( (array) wp_get_nav_menu_items( $nm->term_id ) as $mi ) {
+				if ( ! empty( $mi->url ) ) {
+					$menu[ SSAI_GSC_Import::url_key( preg_replace( '/[?#].*$/', '', $mi->url ) ) ] = true;
+				}
+			}
+		}
+		$ah_pages = array();
+		$ahd      = SSAI_Ahrefs::data();
+		if ( $ahd && ! empty( $ahd['pages'] ) ) {
+			$ah_pages = $ahd['pages'];
+		}
+		$orphans    = array();
+		$no_context = array();
 		foreach ( $inbound as $id => $n ) {
-			if ( 0 === $n && $id !== $home_id ) {
+			if ( 0 !== $n || $id === $home_id || SSAI_SEO::post_noindex( $id ) ) {
+				continue;
+			}
+			$k = SSAI_GSC_Import::url_key( get_permalink( $id ) );
+			if ( isset( $ah_pages[ $k ] ) ) {
+				// Ahrefs crawled the real site: trust its inlink count.
+				if ( $ah_pages[ $k ]['in'] > 0 ) {
+					$no_context[] = $id;
+				} else {
+					$orphans[] = $id;
+				}
+			} elseif ( isset( $menu[ $k ] ) || 'post' === get_post_type( $id ) ) {
+				$no_context[] = $id; // In a menu, or a blog post listed on archive pages.
+			} else {
 				$orphans[] = $id;
 			}
 		}
@@ -542,6 +571,7 @@ class SSAI_Site {
 			'dup_titles' => $dup_titles,
 			'dup_metas'  => $dup_metas,
 			'orphans'    => $orphans,
+			'no_context' => $no_context,
 			'broken'     => $broken,
 			'noindex'    => $noindex,
 			'img_noalt'  => $img_noalt,
@@ -839,7 +869,10 @@ class SSAI_Site {
 					self::check_row( ! $audit['no_meta'] ? true : null, $audit['no_meta'] ? sprintf( '%s صفحه توضیحات متا ندارند.', number_format_i18n( count( $audit['no_meta'] ) ) ) : 'همه صفحه‌ها توضیحات متا دارند.', self::post_list( $audit['no_meta'] ) );
 					self::check_row( ! $audit['no_kw'] ? true : null, $audit['no_kw'] ? sprintf( '%s صفحه کلمه کلیدی ندارند.', number_format_i18n( count( $audit['no_kw'] ) ) ) : 'همه صفحه‌ها کلمه کلیدی دارند.', self::post_list( $audit['no_kw'] ) );
 					self::check_row( ! $audit['thin'] ? true : null, $audit['thin'] ? sprintf( '%s صفحه کمتر از ۳۰۰ کلمه دارند (محتوای کم).', number_format_i18n( count( $audit['thin'] ) ) ) : 'صفحه کم‌محتوا نیست.', self::post_list( $audit['thin'] ) );
-					self::check_row( ! $audit['orphans'] ? true : null, $audit['orphans'] ? sprintf( '%s صفحه «یتیم» هستند: هیچ صفحه دیگری از سایت به آن‌ها لینک نداده (گوگل دیرتر پیدا و کمتر مهم حسابشان می‌کند).', number_format_i18n( count( $audit['orphans'] ) ) ) : 'همه صفحه‌ها حداقل یک لینک داخلی دریافت می‌کنند.', self::post_list( $audit['orphans'] ) . ( $audit['orphans'] ? '<span class="description">لینک‌های منو و فوتر قالب این‌جا حساب نمی‌شوند؛ فقط لینک‌های داخل محتوا.</span>' : '' ) );
+					self::check_row( ! $audit['orphans'] ? true : null, $audit['orphans'] ? sprintf( '%s صفحه «یتیم» هستند: از هیچ جای سایت (محتوا، منو، آرشیو' . ( SSAI_Ahrefs::data() ? '، طبق خزش Ahrefs' : '' ) . ') لینک نگرفته‌اند؛ گوگل دیرتر پیدا و کمتر مهم حسابشان می‌کند.', number_format_i18n( count( $audit['orphans'] ) ) ) : 'هیچ صفحه یتیمی پیدا نشد؛ همه صفحه‌های قابل ایندکس از جایی از سایت لینک می‌گیرند.', self::post_list( $audit['orphans'] ) );
+					if ( ! empty( $audit['no_context'] ) ) {
+						self::check_row( null, sprintf( '%s صفحه فقط از منو، آرشیو بلاگ یا ابزارک‌ها لینک می‌گیرند و هیچ لینکی از داخل متن صفحه‌های دیگر ندارند. یتیم نیستند، ولی لینک داخل متن (با انکر مرتبط) به گوگل بهتر می‌فهماند این صفحه درباره چیست.', number_format_i18n( count( $audit['no_context'] ) ) ), self::post_list( $audit['no_context'] ) );
+					}
 					$bl = '';
 					foreach ( array_slice( $audit['broken'], 0, 15 ) as $b ) {
 						$bl .= '<li><span dir="ltr">' . esc_html( rawurldecode( $b['url'] ) ) . '</span> ← در <a href="' . esc_url( SSAI_Report::url( $b['from'] ) ) . '">' . esc_html( get_the_title( $b['from'] ) ) . '</a></li>';

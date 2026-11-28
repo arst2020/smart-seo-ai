@@ -310,6 +310,7 @@ class SSAI_Analyzer {
 		// shortcodes); the published page fills those gaps.
 		$ph       = self::page_h1s( $post_id, $live );
 		$live_txt = '';
+		$d['page_h1'] = $ph ? array_values( (array) $ph['h1'] ) : null;
 		if ( $ph && ! empty( $ph['main'] ) ) {
 			$lm = $ph['main'];
 			if ( $lm['internal'] > $d['internal_links'] ) {
@@ -704,6 +705,8 @@ class SSAI_Analyzer {
 			. 'seo_title: 50-60 characters, primary keyword at the beginning, a real number only if it is true for the business, one persuasive word, brand at the end if it fits. '
 			. 'Meta description 120-160 characters with the primary keyword and a call to action. Slug: short, lowercase, hyphen separated. '
 			. 'Only suggest alt texts for images listed in the input, using their exact src; include the primary keyword in at least one alt where it truly describes the image. '
+			. 'IMPORTANT: "headings" come only from the editor content; the theme usually prints the page title as the H1 outside it. "page_h1" lists the H1 tags of the PUBLISHED page (null = unknown). Never report a missing H1 when page_h1 has an entry; report multiple H1s only when page_h1 has more than one. '
+			. 'internal_links / external_links already include links found on the published page. "rule_findings" are verified checks: do not contradict them. '
 			. "Never invent facts, prices, numbers or claims about the business.\n\n" . SSAI_Guidelines::prompt();
 
 		$schema = '{"score":0-100,"summary":"2-4 sentences","issues":[{"severity":"high|medium|low","message":"problem","fix":"how to fix"}],"suggestions":{"keywords":{"primary":"","secondary":[""]},"seo_title":"","title":"page H1 title","meta_description":"","slug":"","image_alts":[{"src":"","alt":""}],"internal_link_ideas":["topic of an existing page to link to"],"content_tips":["concrete tip"]}}';
@@ -719,6 +722,7 @@ class SSAI_Analyzer {
 			'search_queries'   => self::search_queries( $post_id )['rows'],
 			'site_name'        => get_bloginfo( 'name' ),
 			'word_count'       => $d['words'],
+			'page_h1'          => isset( $d['page_h1'] ) ? $d['page_h1'] : null,
 			'headings'         => $d['headings'],
 			'images'           => $images,
 			'internal_links'   => $d['internal_links'],

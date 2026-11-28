@@ -169,7 +169,7 @@ class SSAI_Dashboard {
 				$a[] = array( 2, sprintf( '%s صفحه خطای سئو دارند.', number_format_i18n( $audit['with_err'] ) ), $pages, 'ضعیف‌ترین‌ها' );
 			}
 			if ( ! empty( $audit['orphans'] ) ) {
-				$a[] = array( 3, sprintf( '%s صفحه یتیم‌اند (هیچ صفحه‌ای به آن‌ها لینک نداده).', number_format_i18n( count( $audit['orphans'] ) ) ), $site, 'جزئیات' );
+				$a[] = array( 3, sprintf( '%s صفحه یتیم‌اند (از هیچ جای سایت لینک نگرفته‌اند).', number_format_i18n( count( $audit['orphans'] ) ) ), $site, 'جزئیات' );
 			}
 			if ( ! empty( $audit['thin'] ) ) {
 				$a[] = array( 3, sprintf( '%s صفحه کمتر از ۳۰۰ کلمه دارند.', number_format_i18n( count( $audit['thin'] ) ) ), $site, 'جزئیات' );
